@@ -134,11 +134,30 @@ TUNABLES = {
 # ENERGY
 # =========================================
 
-MOVE_COST = 0.1
-TURN_COST = 0.1
-CUT_COST = 0.5
+MOVE_COST = 0.05
+TURN_COST = 0.02
+CUT_COST = 0.4
 
 ENERGY_RESERVE = 5.0
+
+# =========================================
+# LAWNMOWER
+# =========================================
+
+ROBOT_W = 0.50
+ROBOT_H = 0.50
+
+CELL_SIZE_M = 0.25
+
+CUT_RADIUS_CELLS = 1
+
+GRASS_CELL = 1
+CUT_CELL = 2
+OBSTACLE_CELL = -1
+BUFFER_CELL = 3
+
+EDGE_SAFE_MODE = True
+OBSTACLE_INFLATION_M = 0.35
 
 # =========================================
 # SECTORS
