@@ -67,7 +67,7 @@ class LawnHybridAdapter:
         g = np.zeros_like(self.env.grid, dtype=np.int16)
 
         g[self.env.grid == GRASS] = 1
-        g[self.env.grid == CUT] = 0
+        g[self.env.grid == CUT] = 2
         g[self.env.grid == OBSTACLE] = -1
         g[self.env.grid == BUFFER] = -1
 
@@ -105,6 +105,10 @@ class LawnEnergySystemAdapter:
     def recharge(self):
         self.env.energy = self.env.max_energy
         self.env.energy_used = 0.0
+
+        if hasattr(self.env, "recharge_count"):
+            self.env.recharge_count += 1
+
         self.sync()
 
     def can_reach(self, cost, reserve=0.0):

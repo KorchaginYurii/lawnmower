@@ -59,7 +59,9 @@ class LawnEnv:
         move_cost=0.05,
         turn_cost=0.02,
         cut_cost=0.40,
-        max_energy=1000.0,
+        max_energy=100.0,
+        recharge_count = 0,
+
     ):
         self.width_m = width_m
         self.height_m = height_m
@@ -110,6 +112,7 @@ class LawnEnv:
 
         self.energy = self.max_energy
         self.energy_used = 0.0
+        self.recharge_count = 0
         self.steps = 0
         self.total_turns = 0
 
@@ -150,6 +153,7 @@ class LawnEnv:
 
         self.energy = self.max_energy
         self.energy_used = 0.0
+        self.recharge_count = 0
         self.steps = 0
         self.total_turns = 0
 
@@ -200,6 +204,7 @@ class LawnEnv:
 
         self.energy = self.max_energy
         self.energy_used = 0.0
+        self.recharge_count = 0
         self.steps = 0
         self.total_turns = 0
 
@@ -423,7 +428,10 @@ class LawnEnv:
     def find_first_free_cell(self):
         for x in range(self.h):
             for y in range(self.w):
-                if self.can_stand((x, y)):
+                if (
+                        self.can_stand((x, y))
+                        and self.grid[x, y] == GRASS
+                ):
                     return (x, y)
 
         raise RuntimeError("No free cell found")
@@ -490,3 +498,32 @@ class LawnEnv:
 
     def cut_cells(self):
         return set(map(tuple, np.argwhere(self.grid == CUT)))
+
+    def reset_realistic_lawn(
+            self,
+            object_count=8,
+            seed=None,
+    ):
+        from env.lawn_map_generator import LawnMapGenerator
+
+        gen = LawnMapGenerator(
+            h=self.h,
+            w=self.w,
+            min_object_size=4,
+            max_object_size=24,
+            seed=seed,
+        )
+
+        raw_grid = gen.generate_realistic_lawn(
+            object_count=object_count,
+            border_margin=4,
+        )
+
+        mowable_mask = raw_grid == GRASS
+        obstacle_mask = raw_grid == OBSTACLE
+
+        return self.load_mask(
+            mowable_mask=mowable_mask,
+            obstacle_mask=obstacle_mask,
+            start_pos=None,
+        )

@@ -21,7 +21,7 @@ from core.config import USE_PORTAL_PLANNER
 from core.global_planner import AStarPlanner
 from core.portal_planner import PortalPlanner
 from core.hierarchical_planner import HierarchicalPlanner
-
+from core.lawn_coverage_planner import LawnCoveragePlanner
 class HybridAgent:
     def __init__(self, local_agent=None, robot_id="robot_1", blackboard=None):
         self.local_agent = local_agent
@@ -33,8 +33,8 @@ class HybridAgent:
         else:
             print("✅ HybridAgent using RL local_agent")
         self.sectors = SectorManager()
-
         self.low_planner = AStarPlanner()
+        self.lawn_coverage = LawnCoveragePlanner()
 
         if USE_PORTAL_PLANNER:
             self.planner = PortalPlanner(self.sectors, self.low_planner)
@@ -73,7 +73,7 @@ class HybridAgent:
         self.replan_cooldown = 0
         self.prev_pos = None
         self.recovery.reset()
-
+        self.lawn_coverage.reset()
     def nearest_cabbage(self, env):
         cabbages = np.argwhere(env.grid == 1)
 
@@ -159,12 +159,12 @@ class HybridAgent:
                 self.mode = "RETURN_CHARGE"
                 return env.start_pos
 
-            cabbage = self.coverage.get_next_target_hybrid(
-                self.memory,
-                env,
-                self.sectors,
-                sector,
-                prev_pos=getattr(self, "prev_pos", None)
+            cabbage = self.lawn_coverage.get_next_target(
+                env=env,
+                sector_manager=self.sectors,
+                sector_id=sector,
+                memory=self.memory,
+                prev_pos=getattr(self, "prev_pos", None),
             )
 
         else:
