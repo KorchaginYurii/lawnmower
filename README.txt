@@ -275,3 +275,33 @@ turns
 energy_per_m2
 
 А coverage станет почти идеальным.
+
+=== lawn_energy_manager
+
+==== Persistent Sweep State ===
+То есть хранить:
+	current_lane
+	current_direction
+	lane_shift_count
+	sweep_origin
+	visited_lanes
+Чтобы после recharge mower продолжал:
+	с той же полосы а не начинал почти заново.
+=== lawn_lane_memory
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

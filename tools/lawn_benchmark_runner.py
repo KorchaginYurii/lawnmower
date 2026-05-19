@@ -72,7 +72,7 @@ def run_one_lawn_mission(
         ###############
         st_bar = int(20 * (step + 1) / episode_limit)
         print(
-            f"STEP [{'#' * st_bar}{'-' * (20 - st_bar)}] {step + 1}/{episode_limit} | "
+            f"\rSTEP [{'#' * st_bar}{'-' * (20 - st_bar)}] {step + 1}/{episode_limit} | "
             f"pos= {lawn.pos} | "
             f"cell= {lawn.grid[lawn.pos]}",
             end="",
@@ -210,7 +210,7 @@ def main():
         rows.append(result)
 
         print(
-            f"seed={seed} | "
+            f"\nseed={seed} | "
             f"success={result['success']} | "
             f"{result['fail_reason']} | "
             f"coverage={result['coverage_rate']:.3f} | "
