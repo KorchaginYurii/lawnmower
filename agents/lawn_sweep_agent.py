@@ -73,6 +73,7 @@ class LawnSweepAgent:
             "coverage_rate": getattr(env.env, "coverage_rate", lambda: 0.0)(),
             "overlap_rate": getattr(env.env, "overlap_rate", lambda: 0.0)(),
             "goal": env.start_pos if self.mode == "RETURN_HOME" else None,
+            "lane_memory": self.strip.memory.progress_report(env),
         }
 
         return action, debug

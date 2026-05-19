@@ -1,5 +1,5 @@
 from core.config import ACTIONS
-
+from core.lawn_lane_memory import LawnLaneMemory
 
 class LawnStripFollower:
     """
@@ -15,17 +15,20 @@ class LawnStripFollower:
         self.direction = 0      # 0=RIGHT, 1=LEFT, 2=DOWN, 3=UP
         self.lane_shift_dir = 2 # DOWN
         self.mode = "FORWARD"
+        self.memory = LawnLaneMemory()
 
     def reset(self):
         self.direction = 0
         self.lane_shift_dir = 2
         self.mode = "FORWARD"
+        self.memory.reset()
 
     def act(self, env):
         """
         Возвращает action.
         env = LawnHybridAdapter
         """
+        self.memory.update(env)
 
         # 1. пробуем ехать по текущей полосе
         if self.can_move(env, self.direction):
