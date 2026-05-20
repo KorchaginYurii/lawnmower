@@ -36,6 +36,47 @@ MAP_W = 100
 VISION_SIZE = 7
 
 # =========================================
+# LAWNMOWER MAP PRESETS
+# =========================================
+
+LAWN_PRESET = "small"
+
+LAWN_PRESETS = {
+    "tiny": {
+        "width_m": 6,
+        "height_m": 5,
+        "object_count": 1,
+        "max_object_size": 3,
+        "border_margin": 1,
+    },
+    "small": {
+        "width_m": 12,
+        "height_m": 10,
+        "object_count": 3,
+        "max_object_size": 5,
+        "border_margin": 1,
+    },
+    "medium": {
+        "width_m": 24,
+        "height_m": 20,
+        "object_count": 6,
+        "max_object_size": 10,
+        "border_margin": 2,
+    },
+    "full": {
+        "width_m": 42,
+        "height_m": 45,
+        "object_count": 10,
+        "max_object_size": 24,
+        "border_margin": 4,
+    },
+}
+
+CELL_SIZE_M = 0.25
+ROBOT_SIZE_M = 0.50
+LAWNMOWER_MAX_ENERGY = 100.0
+
+# =========================================
 # ACTIONS
 # =========================================
 

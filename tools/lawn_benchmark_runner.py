@@ -11,6 +11,13 @@ from env.lawn_env import LawnEnv
 
 from agents.hybrid_agent import HybridAgent
 from agents.lawn_sweep_agent import LawnSweepAgent
+from core.config import (
+    LAWN_PRESET,
+    LAWN_PRESETS,
+    CELL_SIZE_M,
+    ROBOT_SIZE_M,
+    LAWNMOWER_MAX_ENERGY,
+)
 
 LAWNMOWER_BENCHMARK_VERSION = "lawn_sweep_v1"
 
@@ -32,6 +39,7 @@ def run_one_lawn_mission(
     max_energy=100.0,
     object_count=10,
     max_steps_mult=3,
+    border_margin=1,
 ):
     random.seed(seed)
     np.random.seed(seed)
@@ -48,6 +56,7 @@ def run_one_lawn_mission(
     lawn.reset_realistic_lawn(
         object_count=object_count,
         seed=seed,
+        border_margin=border_margin,
     )
 
     env = LawnHybridAdapter(lawn)
@@ -194,7 +203,7 @@ def print_summary(rows):
 
 def main():
     agent = LawnSweepAgent()
-
+    preset = LAWN_PRESETS[LAWN_PRESET]
     rows = []
 
     for i, seed in enumerate(BENCHMARK_SEEDS):
@@ -203,10 +212,14 @@ def main():
         result = run_one_lawn_mission(
             agent=agent,
             seed=seed,
-            max_energy=100.0,
-            object_count=10,
-        )
 
+            **preset,
+
+            cell_size_m=CELL_SIZE_M,
+            robot_size_m=ROBOT_SIZE_M,
+
+            max_energy=LAWNMOWER_MAX_ENERGY,
+        )
         rows.append(result)
 
         print(

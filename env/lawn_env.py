@@ -1,6 +1,7 @@
 import math
 import numpy as np
 
+
 # =========================
 # CELL TYPES
 # =========================
@@ -503,6 +504,7 @@ class LawnEnv:
             self,
             object_count=8,
             seed=None,
+            border_margin=1,
     ):
         from env.lawn_map_generator import LawnMapGenerator
 
@@ -516,7 +518,7 @@ class LawnEnv:
 
         raw_grid = gen.generate_realistic_lawn(
             object_count=object_count,
-            border_margin=4,
+            border_margin=border_margin,
         )
 
         mowable_mask = raw_grid == GRASS

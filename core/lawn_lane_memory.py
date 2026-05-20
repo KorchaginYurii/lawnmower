@@ -197,4 +197,8 @@ class LawnLaneMemory:
             "blocked_lanes": blocked,
             "total_lanes": lane_count,
             "lane_progress": completed / max(1, lane_count),
+
+            # для визуализации
+            "completed_lane_ids": sorted(list(self.completed_lanes)),
+            "blocked_lane_ids": sorted(list(self.blocked_lanes)),
         }

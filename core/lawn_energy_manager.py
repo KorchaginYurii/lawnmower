@@ -14,7 +14,7 @@ class LawnEnergyManager:
 
     def __init__(
         self,
-        reserve=10.0,
+        reserve=30.0,
         move_cost=0.05,
         turn_cost=0.02,
         cut_cost=0.40,
@@ -36,6 +36,14 @@ class LawnEnergyManager:
 
         if env.pos == env.start_pos:
             return False
+
+        energy_ratio = env.energy_system.energy / max(
+            1e-9,
+            env.energy_system.max_energy
+        )
+
+        if energy_ratio <= 0.30:
+            return True
 
         return_cost = self.estimate_return_cost(env)
 

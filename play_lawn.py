@@ -4,21 +4,32 @@ import pygame
 from env.lawn_env import LawnEnv
 from adapters.lawn_hybrid_adapter import LawnHybridAdapter
 from agents.lawn_sweep_agent import LawnSweepAgent
-from ui.lawn_pygame_renderer import LawnRenderer
-
+from ui.lawn_renderer import LawnRenderer
+from core.config import (
+    LAWN_PRESET,
+    LAWN_PRESETS,
+    CELL_SIZE_M,
+    ROBOT_SIZE_M,
+    LAWNMOWER_MAX_ENERGY,
+)
 
 def main():
+    preset = LAWN_PRESETS[LAWN_PRESET]
+
     lawn = LawnEnv(
-        width_m=42,
-        height_m=45,
-        cell_size_m=0.25,
-        robot_size_m=0.5,
-        max_energy=100.0,
+        width_m=preset["width_m"],
+        height_m=preset["height_m"],
+
+        cell_size_m=CELL_SIZE_M,
+        robot_size_m=ROBOT_SIZE_M,
+
+        max_energy=LAWNMOWER_MAX_ENERGY,
     )
 
     lawn.reset_realistic_lawn(
-        object_count=10,
+        object_count=preset["object_count"],
         seed=101,
+        border_margin=preset["border_margin"],
     )
 
     adapter = LawnHybridAdapter(lawn)

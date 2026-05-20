@@ -7,17 +7,20 @@ from env.lawn_env import GRASS, EMPTY, OBSTACLE
 
 class LawnMapGenerator:
     def __init__(
-        self,
-        h,
-        w,
-        min_object_size=4,
-        max_object_size=24,
-        seed=None,
+            self,
+            h,
+            w,
+            min_object_size=4,
+            max_object_size=24,
+            seed=None,
     ):
         self.h = h
         self.w = w
-        self.min_object_size = min_object_size
-        self.max_object_size = max_object_size
+
+        safe_max = max(2, min(max_object_size, h // 4, w // 4))
+
+        self.min_object_size = min(min_object_size, safe_max)
+        self.max_object_size = safe_max
 
         if seed is not None:
             random.seed(seed)
@@ -56,8 +59,21 @@ class LawnMapGenerator:
     def add_circle(self, grid):
         r = random.randint(
             self.min_object_size,
-            self.max_object_size // 2,
+            max(self.min_object_size, self.max_object_size // 2),
         )
+
+        r = min(
+            r,
+            max(2, self.h // 4),
+            max(2, self.w // 4),
+        )
+
+        # объект не помещается
+        if self.h - r - 3 <= r + 2:
+            return
+
+        if self.w - r - 3 <= r + 2:
+            return
 
         cx = random.randint(r + 2, self.h - r - 3)
         cy = random.randint(r + 2, self.w - r - 3)
@@ -71,12 +87,22 @@ class LawnMapGenerator:
     def add_ellipse(self, grid):
         rx = random.randint(
             self.min_object_size,
-            self.max_object_size,
+            max(self.min_object_size, self.max_object_size),
         )
+
         ry = random.randint(
             self.min_object_size,
-            self.max_object_size,
+            max(self.min_object_size, self.max_object_size),
         )
+
+        rx = min(rx, max(2, self.h // 4))
+        ry = min(ry, max(2, self.w // 4))
+
+        if self.h - rx - 3 <= rx + 2:
+            return
+
+        if self.w - ry - 3 <= ry + 2:
+            return
 
         cx = random.randint(rx + 2, self.h - rx - 3)
         cy = random.randint(ry + 2, self.w - ry - 3)
@@ -87,7 +113,6 @@ class LawnMapGenerator:
                     v = ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2
                     if v <= 1.0:
                         grid[x, y] = OBSTACLE
-
     def add_rect(self, grid):
         hh = random.randint(
             self.min_object_size,
