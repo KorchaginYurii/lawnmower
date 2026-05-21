@@ -381,7 +381,7 @@ def save_results(
     path=None,
 ):
     if path is None:
-        path = f"logs/lawn_benchmark_{LAWNMOWER_BENCHMARK_VERSION}_{ts}.csv"
+        path = f"logs/benchmark_{LAWNMOWER_BENCHMARK_VERSION}_{ts}.csv"
 
     os.makedirs(os.path.dirname(path), exist_ok=True)
 

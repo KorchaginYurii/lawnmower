@@ -408,10 +408,59 @@ Visualization
 === Analyze tool PRO 📊 ===
 ===========================
 
+#############################################
 
+1. RL поверх planner 
+	RL НЕ управляет движением напрямую.
+	RL выбирает:
+		- next coverage cell
+		- sweep orientation
+		- recharge timing
+		- recovery policy
+	То есть:
+		High-level policy RL
+		Low-level deterministic planner
+2. adaptive traffic cost
+	если overlap растёт → traffic penalty усиливается
+	если coverage низкий → traffic penalty ослабляется
+3. auto_tune
+	CoverageTrafficCost
+	CoverageCellOrdering
+	LawnEnergyManager
+################################################
 
+стратегия:
+	Этап A — adaptive traffic cost + auto_tune
+	Этап B — RL поверх planner
+Почему так:
+	1. У нас уже есть стабильный deterministic planner.
+	2. Benchmark уже даёт 90–100% success.
+	3. Узкое место сейчас — tuning tradeoff:
+	   overlap vs energy vs robustness.
+	4. Auto-tune быстро даст сильный baseline.
+	5. RL без хорошего baseline будет учиться на шумной системе.
 
+RL сейчас привлекательный, но преждевременный. Если запустить RL поверх ещё не оттюненного planner, он будет учиться компенсировать баги и нестабильные веса. Это плохо.
 
+	сначала auto_tune на deterministic planner
+		↓
+	получить сильные параметры
+		↓
+	зафиксировать stable baseline
+		↓
+	потом RL учит high-level decisions
 
+Я бы сделал так:
 
+	1. lawn_auto_tune.py
+	2. adaptive_traffic_controller.py
+	3. tuned config profile: stable / aggressive / energy_saver
+	4. потом RL policy:
+	   - choose next cell
+	   - choose recharge threshold
+	   - choose traffic aggressiveness
+	   - choose recovery mode
 
+Итог: adaptive + auto_tune сейчас даст быстрый прирост, а RL потом станет не заменой planner, а “умным диспетчером” поверх уже сильной системы.
+
+======== lawn_auto_tune ====
