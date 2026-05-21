@@ -363,6 +363,7 @@ class LawnEnv:
             "overlap_rate": self.overlap_rate(),
             "remaining_grass": self.remaining_grass(),
             "total_turns": self.total_turns,
+            "knife_on": self.knife_on,
         }
 
         return self.get_state(), reward, done, info

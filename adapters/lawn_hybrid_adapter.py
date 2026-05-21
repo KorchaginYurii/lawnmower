@@ -54,7 +54,13 @@ class LawnHybridAdapter:
 
     def step(self, action):
         state, reward, done, info = self.env.step(action)
+
+        self.last_info = info
+        self.last_cut_cells = info.get("cut_cells", 0)
+        self.last_knife_on = info.get("knife_on", self.env.knife_on)
+
         self.sync_from_env()
+
         return reward, done
 
     def _build_agent_grid(self):

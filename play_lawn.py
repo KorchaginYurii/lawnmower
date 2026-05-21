@@ -76,6 +76,10 @@ def main():
             reward, done = adapter.step(action)
 
             debug["reward"] = reward
+            debug["knife_on_real"] = lawn.knife_on
+            debug["cut_cells_last"] = getattr(adapter, "last_cut_cells", 0)
+            debug["cell_under_robot"] = lawn.grid[lawn.pos]
+            debug["knife_on_real"] = getattr(adapter, "last_knife_on", lawn.knife_on)
 
             renderer.draw(lawn, debug)
 

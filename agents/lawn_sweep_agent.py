@@ -192,6 +192,22 @@ class LawnSweepAgent:
         self.last_cut = current_cut
 
         # =====================================================
+        # KNIFE CONTROL
+        # =====================================================
+        '''
+        if self.mode in ("SWEEP_SECTOR", "GO_TO_SECTOR", "RECOVERY"):
+            env.env.knife_on = True
+
+        elif self.mode == "RETURN_HOME":
+            # act_return_home сам может выключить нож,
+            # если найден путь только по CUT
+            pass
+
+        elif self.mode == "FINISHED":
+            env.env.knife_on = False
+        '''
+
+        # =====================================================
         # 4. ACTION BY MODE
         # =====================================================
         if self.mode == "RETURN_HOME":
@@ -212,6 +228,15 @@ class LawnSweepAgent:
         else:
             self.mode = "GO_TO_SECTOR"
             action = WAIT_ACTION
+
+        # =====================================================
+        # KNIFE CONTROL BY CELL
+        # =====================================================
+        if self.mode != "RETURN_HOME":
+            env.env.knife_on = self.should_enable_knife(
+                env,
+                action,
+            )
 
         # =====================================================
         # ACTION VALIDATION / SPIN PROTECTION
@@ -247,6 +272,7 @@ class LawnSweepAgent:
         self.current_cell = self.mission.choose_cell(
             env,
             self.decomposition,
+            self.traffic_cost,
         )
 
         if self.current_cell is None:
@@ -477,7 +503,14 @@ class LawnSweepAgent:
             self.return_path = self.sync_path(env, self.return_path)
 
         if self.return_path is not None and len(self.return_path) >= 2:
-            return self.action_from_path(env, self.return_path)
+            action = self.action_from_path(env, self.return_path)
+
+            if self.return_path_is_cut_only(env, self.return_path):
+                env.env.knife_on = False
+            else:
+                env.env.knife_on = self.should_enable_knife(env, action)
+
+            return action
 
         return WAIT_ACTION
 
@@ -702,6 +735,8 @@ class LawnSweepAgent:
             "coverage_cells": decomp_debug.get("coverage_cells", 0),
 
             **self.cell_route.debug(),
+
+            #"knife_on_real": self.knife_on,
         }
 
     def is_action_valid(self, env, action):
@@ -804,3 +839,65 @@ class LawnSweepAgent:
         if not self.decomposition_built:
             self.decomposition.build(env)
             self.decomposition_built = True
+
+    def should_enable_knife(self, env, action):
+        """
+        Нож включается только если сейчас или следующим шагом
+        робот реально будет косить нескошенную траву.
+        """
+        if self.mode == "FINISHED":
+            return False
+
+        if action == WAIT_ACTION:
+            return False
+
+        x, y = env.pos
+        dx, dy = ACTIONS[action]
+
+        nx = x + dx
+        ny = y + dy
+
+        if not (0 <= nx < env.grid.shape[0] and 0 <= ny < env.grid.shape[1]):
+            nx, ny = x, y
+
+        return self.footprint_has_grass(env, (nx, ny))
+
+    def footprint_has_grass(self, env, pos):
+        """
+        Проверяет не центр робота, а всю зону покоса 2x2.
+        Должно совпадать с LawnEnv.cut_under_robot().
+        """
+        import math
+
+        radius_cells = max(
+            1,
+            int(math.ceil((env.env.robot_size_m / 2.0) / env.env.cell_size_m))
+        )
+
+        cx, cy = pos
+
+        for dx in range(-radius_cells + 1, radius_cells + 1):
+            for dy in range(-radius_cells + 1, radius_cells + 1):
+                x = cx + dx
+                y = cy + dy
+
+                if 0 <= x < env.grid.shape[0] and 0 <= y < env.grid.shape[1]:
+                    if env.grid[x, y] == 1:
+                        return True
+
+        return False
+
+    def return_path_is_cut_only(self, env, path):
+        if path is None:
+            return False
+
+        for p in path[1:]:
+            x, y = p
+
+            if p == env.start_pos:
+                continue
+
+            if env.grid[x, y] != 2:
+                return False
+
+        return True

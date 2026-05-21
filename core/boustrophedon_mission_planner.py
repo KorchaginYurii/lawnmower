@@ -1,5 +1,5 @@
 import numpy as np
-
+from core.coverage_cell_ordering import CoverageCellOrdering
 
 class BoustrophedonMissionPlanner:
     """
@@ -9,6 +9,7 @@ class BoustrophedonMissionPlanner:
     def __init__(self):
         self.current_cell = None
         self.last_cell = None
+        self.ordering = CoverageCellOrdering()
 
     def reset(self):
         self.current_cell = None
@@ -55,9 +56,10 @@ class BoustrophedonMissionPlanner:
         return cut / total
 
     def choose_cell(
-        self,
-        env,
-        decomposition,
+            self,
+            env,
+            decomposition,
+            traffic_cost,
     ):
         # ============================================
         # keep current cell if unfinished
@@ -86,6 +88,7 @@ class BoustrophedonMissionPlanner:
                 env,
                 decomposition,
                 neighbors,
+                traffic_cost,
             )
 
             if best is not None:
@@ -102,6 +105,7 @@ class BoustrophedonMissionPlanner:
             env,
             decomposition,
             all_cells,
+            traffic_cost,
         )
 
         self.current_cell = best
@@ -109,62 +113,24 @@ class BoustrophedonMissionPlanner:
         return best
 
     def best_cell_from_list(
-        self,
-        env,
-        decomposition,
-        cells,
+            self,
+            env,
+            decomposition,
+            cells,
+            traffic_cost=None,
     ):
         if not cells:
             return None
 
-        px, py = env.pos
-
-        best = None
-        best_score = -1e18
-
-        for cell_id in cells:
-
-            uncut = self.cell_uncut(
-                env,
-                decomposition,
-                cell_id,
-            )
-
-            if uncut <= 0:
-                continue
-
-            coverage = self.cell_coverage(
-                env,
-                decomposition,
-                cell_id,
-            )
-
-            cx, cy = decomposition.cells[
-                cell_id
-            ].center()
-
-            dist = abs(cx - px) + abs(cy - py)
-
-            visit_penalty = 0.0
-
-            if hasattr(env.env, "visit_count"):
-                visit_penalty = (
-                    env.env.visit_count[cx, cy]
-                    * 2.0
-                )
-
-            score = (
-                uncut * 3.0
-                - coverage * 20.0
-                - dist * 1.5
-                - visit_penalty
-            )
-
-            if score > best_score:
-                best_score = score
-                best = cell_id
-
-        return best
+        return self.ordering.choose_best_cell(
+            env=env,
+            decomposition=decomposition,
+            mission=self,
+            traffic_cost=traffic_cost,
+            candidate_cells=cells,
+            current_cell=self.current_cell,
+            home_pos=env.start_pos,
+        )
 
     def finish_cell(self, cell_id):
         self.last_cell = cell_id

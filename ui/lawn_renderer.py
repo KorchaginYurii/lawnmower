@@ -96,7 +96,7 @@ class LawnRenderer:
             self.draw_goal(debug.get("goal"))
 
         self.draw_base(env)
-        self.draw_robot(env)
+        self.draw_robot(env, debug)
 
         self.draw_side_panel(env, debug)
         self.draw_bottom_hud(env, debug)
@@ -130,30 +130,124 @@ class LawnRenderer:
                     ),
                 )
 
-    def draw_robot(self, env):
+    def draw_robot(self, env, debug=None):
+        debug = debug or {}
+
         x, y = env.pos
 
-        pygame.draw.rect(
-            self.screen,
-            ROBOT,
-            (
-                y * self.cell,
-                x * self.cell,
-                self.cell,
-                self.cell,
-            ),
-            3,
+        cell = self.cell
+
+        robot_size_m = getattr(env, "robot_size_m", 0.5)
+        cell_size_m = getattr(env, "cell_size_m", 0.25)
+
+        body_cells = max(1, int(round(robot_size_m / cell_size_m)))
+
+        knife_radius_cells = max(
+            1,
+            int(round((robot_size_m / 2.0) / cell_size_m))
         )
 
-        cx = y * self.cell + self.cell // 2
-        cy = x * self.cell + self.cell // 2
+        collision_radius_cells = max(
+            1,
+            int(round((robot_size_m / 2.0) / cell_size_m))
+        )
+
+        cx = y * cell + cell // 2
+        cy = x * cell + cell // 2
+
+        knife_on = debug.get(
+            "knife_on_real",
+            getattr(env, "knife_on", True)
+        )
+
+        mode = debug.get("mode", "")
+
+        if mode == "RETURN_HOME":
+            body_color = (80, 160, 255)
+        elif mode == "RECOVERY":
+            body_color = (255, 220, 60)
+        elif mode == "FINISHED":
+            body_color = (60, 220, 60)
+        else:
+            body_color = ROBOT
+
+        # =========================
+        # KNIFE AREA
+        # =========================
+
+        knife_radius_px = knife_radius_cells * cell
+
+        if knife_on:
+            pygame.draw.circle(
+                self.screen,
+                (255, 80, 80, 70),
+                (cx, cy),
+                knife_radius_px,
+            )
+        else:
+            pygame.draw.circle(
+                self.screen,
+                (180, 180, 180),
+                (cx, cy),
+                knife_radius_px,
+                1,
+            )
+
+        # =========================
+        # COLLISION RADIUS
+        # =========================
+
+        collision_radius_px = collision_radius_cells * cell
 
         pygame.draw.circle(
             self.screen,
-            ROBOT,
+            (255, 255, 255),
             (cx, cy),
-            max(4, self.cell // 4),
+            collision_radius_px,
+            1,
         )
+
+        # =========================
+        # BODY
+        # =========================
+
+        half_px = (body_cells * cell) // 2
+
+        body_rect = pygame.Rect(
+            cx - half_px,
+            cy - half_px,
+            body_cells * cell,
+            body_cells * cell,
+        )
+
+        if knife_on:
+            pygame.draw.rect(
+                self.screen,
+                body_color,
+                body_rect,
+            )
+        else:
+            pygame.draw.rect(
+                self.screen,
+                body_color,
+                body_rect,
+                3,
+            )
+
+        # =========================
+        # CENTER POINT
+        # =========================
+
+        pygame.draw.circle(
+            self.screen,
+            (255, 255, 255),
+            (cx, cy),
+            3,
+        )
+
+        # =========================
+        # HEADING ARROW
+        # =========================
 
         heading = getattr(env, "heading", 1)
         dirs = [(-1, 0), (0, 1), (1, 0), (0, -1)]
@@ -164,8 +258,8 @@ class LawnRenderer:
             (255, 255, 255),
             (cx, cy),
             (
-                cx + dy * self.cell * 0.8,
-                cy + dx * self.cell * 0.8,
+                cx + dy * cell * 1.2,
+                cy + dx * cell * 1.2,
             ),
             3,
         )
@@ -359,6 +453,8 @@ class LawnRenderer:
             ("Base", BASE),
             ("Goal", GOAL),
             ("Path", PATH),
+            ("Knife area", (255, 80, 80)),
+            ("Collision radius", (255, 255, 255)),
         ]
 
         for name, color in legend:
@@ -404,6 +500,8 @@ class LawnRenderer:
         total = env.total_grass()
         remaining = env.remaining_grass()
 
+        knife = "ON" if debug.get("knife_on_real", getattr(env, "knife_on", False)) else "OFF"
+
         item(0, 0, f"STEP {env.steps}")
         item(1, 0, f"MODE {debug.get('mode', '-')}")
         item(2, 0, f"STRIP {debug.get('strip_mode', '-')}")
@@ -418,6 +516,10 @@ class LawnRenderer:
         item(1, 2, f"RECH {getattr(env, 'recharge_count', 0)}")
         item(2, 2, f"DIR {debug.get('strip_direction', '-')}")
         item(3, 2, f"GOAL {debug.get('goal', '-')}")
+
+        item(0, 3, f"KNIFE {knife}")
+        item(1, 3, f"CUT_LAST {debug.get('cut_cells_last', 0)}")
+        item(2, 3, f"CELL {debug.get('cell_under_robot', '-')}")
 
     def handle_mouse(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
