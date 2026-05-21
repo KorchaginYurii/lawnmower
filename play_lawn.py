@@ -12,6 +12,8 @@ from core.config import (
     ROBOT_SIZE_M,
     LAWNMOWER_MAX_ENERGY,
 )
+import inspect
+import agents.lawn_sweep_agent as lawn_agent_mod
 
 def main():
     preset = LAWN_PRESETS[LAWN_PRESET]
@@ -30,6 +32,7 @@ def main():
         object_count=preset["object_count"],
         seed=101,
         border_margin=preset["border_margin"],
+        max_object_size=preset["max_object_size"],
     )
 
     adapter = LawnHybridAdapter(lawn)

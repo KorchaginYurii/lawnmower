@@ -103,10 +103,11 @@ class LawnEnergySystemAdapter:
         self.max_energy = self.env.max_energy
 
     def recharge(self):
-        self.env.energy = self.env.max_energy
-        self.env.energy_used = 0.0
+        was_not_full = self.env.energy < self.env.max_energy - 1e-6
 
-        if hasattr(self.env, "recharge_count"):
+        self.env.energy = self.env.max_energy
+
+        if was_not_full and hasattr(self.env, "recharge_count"):
             self.env.recharge_count += 1
 
         self.sync()

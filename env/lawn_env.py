@@ -1,6 +1,6 @@
 import math
 import numpy as np
-
+from collections import deque
 
 # =========================
 # CELL TYPES
@@ -56,7 +56,7 @@ class LawnEnv:
         height_m=45.0,
         cell_size_m=0.25,
         robot_size_m=0.50,
-        obstacle_inflation_m=0.35,
+        obstacle_inflation_m=0.25,
         move_cost=0.05,
         turn_cost=0.02,
         cut_cost=0.40,
@@ -150,6 +150,10 @@ class LawnEnv:
 
         self.start_pos = start_pos
         self.pos = start_pos
+        removed = self.remove_unreachable_grass()
+
+        if removed > 0:
+            print(f"⚠️ removed unreachable grass cells: {removed}")
         self.heading = 1
 
         self.energy = self.max_energy
@@ -340,7 +344,8 @@ class LawnEnv:
         # -------------------------
         # DONE
         # -------------------------
-        if self.remaining_grass() == 0:
+        # mission complete only when all grass is cut AND robot returned home
+        if self.remaining_grass() == 0 and self.pos == self.start_pos:
             done = True
             reward += 100.0
 
@@ -505,14 +510,15 @@ class LawnEnv:
             object_count=8,
             seed=None,
             border_margin=1,
+            max_object_size=24,
     ):
         from env.lawn_map_generator import LawnMapGenerator
 
         gen = LawnMapGenerator(
             h=self.h,
             w=self.w,
-            min_object_size=4,
-            max_object_size=24,
+            min_object_size=2,
+            max_object_size=max_object_size,
             seed=seed,
         )
 
@@ -529,3 +535,50 @@ class LawnEnv:
             obstacle_mask=obstacle_mask,
             start_pos=None,
         )
+
+    def remove_unreachable_grass(self):
+        """
+        Удаляет недостижимую траву после obstacle inflation.
+        Всё, куда робот не может доехать от start_pos, становится EMPTY.
+        """
+
+        if self.start_pos is None:
+            self.start_pos = self.find_first_free_cell()
+
+        h, w = self.grid.shape
+        q = deque([self.start_pos])
+        reachable = set([self.start_pos])
+
+        while q:
+            x, y = q.popleft()
+
+            for dx, dy in ACTIONS[:4]:
+                nx = x + dx
+                ny = y + dy
+                p = (nx, ny)
+
+                if nx < 0 or ny < 0 or nx >= h or ny >= w:
+                    continue
+
+                if p in reachable:
+                    continue
+
+                if self.grid[nx, ny] in (OBSTACLE, BUFFER):
+                    continue
+
+                # можно двигаться по траве и уже скошенной траве
+                if self.grid[nx, ny] not in (GRASS, CUT):
+                    continue
+
+                reachable.add(p)
+                q.append(p)
+
+        unreachable_grass = 0
+
+        for x in range(h):
+            for y in range(w):
+                if self.grid[x, y] == GRASS and (x, y) not in reachable:
+                    self.grid[x, y] = EMPTY
+                    unreachable_grass += 1
+
+        return unreachable_grass

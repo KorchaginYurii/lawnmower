@@ -288,19 +288,113 @@ energy_per_m2
 Чтобы после recharge mower продолжал:
 	с той же полосы а не начинал почти заново.
 === lawn_lane_memory
+=== StripFollower
+чтобы он не просто ехал “тупо вперед”, а lane-aware: он будет закрывать текущую полосу, выбирать следующую незавершенную и пытаться перейти к ней.
 
+===== lawn_pygame_renderer ====
 
+=================================
+== текущий уровень ====
+==================================
+Global planner
+Sector planner
+Coverage route
+Energy-aware return
+Recovery
+Heatmaps
+Sector memory
+Cut-only return
+Benchmark
+Visualization
 
+💥💥💥💥 осталось 4 больших слабых места:💥💥💥💥
+💥 1. SectorSweepRoute всё ещё слишком тупой #############
+	Сейчас:
+		фиксированная змейка
+	Проблема:
+		не учитывает obstacle geometry
+		не учитывает узкие проходы
+		не учитывает islands
 
+🚀 Boustrophedon Cellular Decomposition ===
+	Это реальный алгоритм mower/tractor coverage.
+	Идея:
+		разбить поле не на квадраты, а на "естественные области"
+		между препятствиями
+	Тогда:
+		каждая область косится идеальной змейкой
+		без хаоса вокруг овальных препятствий.
+	Это именно то, что используют:
+	Husqvarna, Bosch, John Deere, ROS coverage planners
 
+💥 2. A* слишком часто строится заново ################
+	Сейчас у тебя:
+		очень много replanning
+	Следствие:
+		горячие зоны
+		CPU load
 
+🚀 Hierarchical Path Planning =====
+	GLOBAL:
+		sector graph
+	LOCAL:
+		A* внутри сектора
+	То есть:
+	между секторами = graph routing
+	внутри сектора = local coverage
 
+💥 3. Нет “corridor memory” ########################
+	Сейчас heatmap только штрафует.
 
-
-
-
-
-
+🚀 Persistent Traffic Cost =========
+	То есть:
+		каждый проход делает corridor дороже
+		не только локально, а глобально.
+	Тогда исчезнут:
+		магистрали
+		горячие вертикальные зоны
+💥 4. Нет настоящего frontier planning #############
+	Сейчас recovery:
+		ищет ближайшую траву
+🚀 coverage frontier planner =======
+		искать frontier boundary между CUT и GRASS
+=========================================================	
+====================================================
+🚜🔥 Boustrophedon Coverage Decomposition ==========
+====================================================
+	текущие grid-сектора слишком искусственные.
+		████
+		████
+		████
+	Из-за этого:
+		- agent прыгает между секторами
+		- obstacle geometry игнорируется
+		- узкие проходы ломают sweep
+		- recovery сложный
+=== Natural Coverage Cells ===
+	   obstacle
+	   ██████
+	cell A    cell B
+	██████    ██████
+	██████    ██████
+	То есть obstacle автоматически разрезает пространство.
+ЭТАП 1 — decomposition
+	Делаем:
+	free space
+		↓
+	scanline decomposition
+		↓	
+	coverage cells
+		↓
+	adjacency graph
+ЭТАП 2 — sweep route per cell
+	Каждая natural-cell:
+		→→→→
+		←←←←
+		→→→→
+ЭТАП 3 — cell graph planner
+	Вместо grid sectors
+	будет: coverage graph
 
 
 
