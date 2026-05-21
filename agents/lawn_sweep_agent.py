@@ -8,7 +8,7 @@ from core.lawn_energy_manager import LawnEnergyManager
 from core.boustrophedon_decomposition import BoustrophedonDecomposition
 from core.boustrophedon_mission_planner import BoustrophedonMissionPlanner
 from core.cell_sweep_route import CellSweepRoute
-
+from core.coverage_traffic_cost import CoverageTrafficCost
 
 class LawnSweepAgent:
     """
@@ -53,6 +53,8 @@ class LawnSweepAgent:
 
         self.decomposition_built = False
         self.current_cell = None
+
+        self.traffic_cost = CoverageTrafficCost()
 
     def reset(self):
         self.strip.reset()
@@ -550,7 +552,11 @@ class LawnSweepAgent:
             self.recovery_path = self.sync_path(env, self.recovery_path)
 
         if self.recovery_path is None or len(self.recovery_path) < 2:
+
             target = self.find_best_recovery_target(env)
+
+            if self.recovery_path is not None and len(self.recovery_path) >= 2:
+                return self.action_from_path(env, self.recovery_path)
 
             if target is None:
                 self.mode = "GO_TO_SECTOR"
@@ -776,19 +782,21 @@ class LawnSweepAgent:
 
         candidates.sort(key=lambda z: z[0])
 
-        for score, target in candidates[:50]:
-            path = self.planner.find_path_oriented(
-                env,
-                env.pos,
-                target,
-                memory=None,
-                unknown_policy="allow",
-                robot_id="lawnmower",
-                blackboard=None,
-            )
+        targets = [
+            target
+            for _, target in candidates[:50]
+        ]
 
-            if path is not None and len(path) >= 2:
-                return target
+        target, path = self.traffic_cost.best_path(
+            env,
+            self.planner,
+            targets,
+            max_targets=30,
+        )
+
+        if target is not None:
+            self.recovery_path = path
+            return target
 
         return None
 
