@@ -6,7 +6,7 @@ class CoverageCellOrdering:
     def __init__(
         self,
         distance_weight=1.5,
-        traffic_weight=3.0,
+        traffic_weight=1.2,
         neighbor_bonus=20.0,
         uncut_weight=3.0,
         return_home_weight=2.0,

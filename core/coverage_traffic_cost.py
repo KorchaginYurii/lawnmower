@@ -13,7 +13,7 @@ class CoverageTrafficCost:
 
     def __init__(
         self,
-        visit_weight=0.20,
+        visit_weight=0.08,
         cut_weight=0.05,
         max_penalty=8.0,
     ):
