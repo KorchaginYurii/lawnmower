@@ -1,14 +1,13 @@
 import numpy as np
+import numpy as np
 from core.tuning_config import runtime_config
+
 
 class CoverageTrafficCost:
     """
     Штраф за повторное использование одних и тех же клеток.
-
-    Цель:
-    - уменьшить горячие зоны
-    - снизить overlap
-    - заставить A* выбирать менее истоптанные коридоры
+    Важно: параметры читаются из runtime_config во время расчёта,
+    поэтому adaptive controller может менять их на лету.
     """
 
     def __init__(
@@ -16,21 +15,30 @@ class CoverageTrafficCost:
         visit_weight=0.08,
         cut_weight=0.05,
         max_penalty=8.0,
-        ):
+    ):
+        self.default_visit_weight = visit_weight
+        self.default_cut_weight = cut_weight
+        self.default_max_penalty = max_penalty
 
-        self.visit_weight = runtime_config.get(
+    @property
+    def visit_weight(self):
+        return runtime_config.get(
             "VISIT_WEIGHT",
-            visit_weight,
+            self.default_visit_weight,
         )
 
-        self.cut_weight = runtime_config.get(
+    @property
+    def cut_weight(self):
+        return runtime_config.get(
             "CUT_WEIGHT",
-            cut_weight,
+            self.default_cut_weight,
         )
 
-        self.max_penalty = runtime_config.get(
+    @property
+    def max_penalty(self):
+        return runtime_config.get(
             "TRAFFIC_MAX_PENALTY",
-            max_penalty,
+            self.default_max_penalty,
         )
 
     def cell_cost(self, env, pos):
@@ -62,11 +70,6 @@ class CoverageTrafficCost:
         targets,
         max_targets=30,
     ):
-        """
-        Выбирает достижимую цель с минимальной ценой:
-        distance + traffic penalty.
-        """
-
         if not targets:
             return None, None
 

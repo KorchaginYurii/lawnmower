@@ -1,8 +1,10 @@
 from core.tuning_config import runtime_config
 
+
 class CoverageCellOrdering:
     """
     Оптимизатор порядка обхода coverage-cells.
+    Параметры читаются из runtime_config во время score_cell().
     """
 
     def __init__(
@@ -13,29 +15,45 @@ class CoverageCellOrdering:
         uncut_weight=3.0,
         return_home_weight=2.0,
     ):
-        self.distance_weight = runtime_config.get(
+        self.default_distance_weight = distance_weight
+        self.default_traffic_weight = traffic_weight
+        self.default_neighbor_bonus = neighbor_bonus
+        self.default_uncut_weight = uncut_weight
+        self.default_return_home_weight = return_home_weight
+
+    @property
+    def distance_weight(self):
+        return runtime_config.get(
             "CELL_DISTANCE_WEIGHT",
-            distance_weight,
+            self.default_distance_weight,
         )
 
-        self.traffic_weight = runtime_config.get(
+    @property
+    def traffic_weight(self):
+        return runtime_config.get(
             "CELL_TRAFFIC_WEIGHT",
-            traffic_weight,
+            self.default_traffic_weight,
         )
 
-        self.neighbor_bonus = runtime_config.get(
+    @property
+    def neighbor_bonus(self):
+        return runtime_config.get(
             "CELL_NEIGHBOR_BONUS",
-            neighbor_bonus,
+            self.default_neighbor_bonus,
         )
 
-        self.uncut_weight = runtime_config.get(
+    @property
+    def uncut_weight(self):
+        return runtime_config.get(
             "CELL_UNCUT_WEIGHT",
-            uncut_weight,
+            self.default_uncut_weight,
         )
 
-        self.return_home_weight = runtime_config.get(
+    @property
+    def return_home_weight(self):
+        return runtime_config.get(
             "CELL_RETURN_HOME_WEIGHT",
-            return_home_weight,
+            self.default_return_home_weight,
         )
 
     def score_cell(

@@ -12,6 +12,7 @@ CONFIG_VERSION = "knife control_v1"
 USE_LOCAL_RL = False
 USE_HIERARCHICAL_PLANNER = False
 USE_PORTAL_PLANNER = False
+USE_ADAPTIVE_TRAFFIC = True
 
 # =========================================
 # WINDOW / UI

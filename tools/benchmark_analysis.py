@@ -11,7 +11,7 @@ LOG_DIR = "logs"
 def choose_file(folder=LOG_DIR):
     files = [
         f for f in os.listdir(folder)
-        if f.endswith(".csv") and "lawn_benchmark" in f
+        if f.endswith(".csv") and "benchmark" in f
     ]
 
     files.sort(reverse=True)

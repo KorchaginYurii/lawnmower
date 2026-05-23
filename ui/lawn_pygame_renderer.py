@@ -342,6 +342,11 @@ class LawnRenderer:
         item(2, 2, f"DIR {debug.get('strip_direction', '-')}")
         item(3, 2, f"GOAL {debug.get('goal', '-')}")
 
+        item(0, 3, f"PHASE {debug.get('adaptive_phase', '-')}")
+        item(1, 3, f"VW {debug.get('adaptive_visit_weight', 0):.2f}")
+        item(2, 3, f"TW {debug.get('adaptive_cell_traffic_weight', 0):.2f}")
+        item(3, 3, f"CW {debug.get('adaptive_cut_weight', 0):.2f}")
+
     def handle_mouse(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             mx, my = event.pos

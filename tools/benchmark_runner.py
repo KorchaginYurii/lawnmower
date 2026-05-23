@@ -20,6 +20,8 @@ from core.config import (
     WAIT_ACTION,
 )
 from core.tuning_config import runtime_config
+from core.config import USE_ADAPTIVE_TRAFFIC
+
 
 LAWNMOWER_BENCHMARK_VERSION = "lawn_sweep_v1"
 
@@ -290,6 +292,15 @@ def run_one_lawn_mission(
             "PROFILE_NAME",
             "unknown"
         ),
+        "adaptive": USE_ADAPTIVE_TRAFFIC,
+
+        "adaptive_phase": debug.get("adaptive_phase", "NA"),
+        "visit_weight": runtime_config.get("VISIT_WEIGHT"),
+        "cell_traffic_weight": runtime_config.get("CELL_TRAFFIC_WEIGHT"),
+        "cut_weight": runtime_config.get("CUT_WEIGHT"),
+
+
+
 
         # =========================
         # BASIC
@@ -423,6 +434,11 @@ def print_summary(rows):
 
 
 def main():
+    runtime_config.reset()
+
+    runtime_config.load_profile(
+        "configs.tuned_aggressive"
+    )
     agent = LawnSweepAgent()
     preset = LAWN_PRESETS[LAWN_PRESET]
     rows = []
