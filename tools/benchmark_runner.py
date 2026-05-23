@@ -19,6 +19,7 @@ from core.config import (
     LAWNMOWER_MAX_ENERGY,
     WAIT_ACTION,
 )
+from core.tuning_config import runtime_config
 
 LAWNMOWER_BENCHMARK_VERSION = "lawn_sweep_v1"
 
@@ -205,7 +206,8 @@ def run_one_lawn_mission(
         ###############
             st_bar = int(20 * (step + 1) / max_steps)
             print(
-                    f"\rSTEP [{'#' * st_bar}{'-' * (20 - st_bar)}] {step + 1}/{max_steps} | "
+                    f"*\r{seed}* "
+                    f"STEP [{'#' * st_bar}{'-' * (20 - st_bar)}] {step + 1}/{max_steps} | "
                     f"recharge= {lawn.recharge_count} | "
                     f"grass= {lawn.remaining_grass()}/{total_grass} | ",
                     f"reward= {total_reward:2f}",
@@ -284,6 +286,10 @@ def run_one_lawn_mission(
     # =====================================================
 
     result = {
+        "profile": runtime_config.get(
+            "PROFILE_NAME",
+            "unknown"
+        ),
 
         # =========================
         # BASIC

@@ -1,5 +1,5 @@
 import numpy as np
-
+from core.tuning_config import runtime_config
 
 class CoverageTrafficCost:
     """
@@ -16,10 +16,22 @@ class CoverageTrafficCost:
         visit_weight=0.08,
         cut_weight=0.05,
         max_penalty=8.0,
-    ):
-        self.visit_weight = visit_weight
-        self.cut_weight = cut_weight
-        self.max_penalty = max_penalty
+        ):
+
+        self.visit_weight = runtime_config.get(
+            "VISIT_WEIGHT",
+            visit_weight,
+        )
+
+        self.cut_weight = runtime_config.get(
+            "CUT_WEIGHT",
+            cut_weight,
+        )
+
+        self.max_penalty = runtime_config.get(
+            "TRAFFIC_MAX_PENALTY",
+            max_penalty,
+        )
 
     def cell_cost(self, env, pos):
         x, y = pos

@@ -153,7 +153,7 @@ class LawnEnv:
         removed = self.remove_unreachable_grass()
 
         if removed > 0:
-            print(f"⚠️ removed unreachable grass cells: {removed}")
+            print(f"\n⚠️ removed unreachable grass cells: {removed}")
         self.heading = 1
 
         self.energy = self.max_energy

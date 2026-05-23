@@ -24,17 +24,17 @@ from core.tuning_config import runtime_config
 
 SEARCH_SPACE = {
     # traffic / hot corridor avoidance
-    "VISIT_WEIGHT": [0.04, 0.06, 0.08, 0.10],
-    #"CUT_WEIGHT": [0.02, 0.04, 0.06],
-    #"TRAFFIC_MAX_PENALTY": [6.0, 8.0, 10.0],
+    "VISIT_WEIGHT": [0.02, 0.04, 0.06],
+    "CUT_WEIGHT": [0.06, 0.08, 0.10],
+    #"TRAFFIC_MAX_PENALTY": [4.0, 6.0, 8.0, 10.0, 12.0],
 
     # coverage cell ordering
-    "CELL_TRAFFIC_WEIGHT": [0.8, 1.0, 1.2, 1.5],
-    "CELL_NEIGHBOR_BONUS": [15.0, 20.0, 25.0],
-    #"CELL_DISTANCE_WEIGHT": [1.2, 1.5, 1.8],
+    "CELL_TRAFFIC_WEIGHT": [0.6, 0.8, 1.0],
+    #"CELL_NEIGHBOR_BONUS": [15.0, 20.0, 25.0],
+    #"CELL_DISTANCE_WEIGHT":  [1.0, 1.2, 1.5, 1.8, 2.0],
 
     # energy
-    "ENERGY_RESERVE": [25.0, 30.0, 35.0],
+    "ENERGY_RESERVE": [28.0, 30.0, 32.0],
 }
 
 
@@ -96,6 +96,12 @@ def save_tuning_results(rows, path=None):
 
 
 def run_config(cfg, seeds):
+    runtime_config.reset()
+
+    runtime_config.load_profile(
+        "configs.tuned_stable"
+    )
+
     runtime_config.update(cfg)
 
     preset = LAWN_PRESETS[LAWN_PRESET]
@@ -116,7 +122,6 @@ def run_config(cfg, seeds):
 
     return rows
 
-
 def main():
     all_rows = []
 
@@ -127,14 +132,14 @@ def main():
     configs = list(config_product(SEARCH_SPACE))
 
     print(f"Total configs: {len(configs)}")
-    print(f"Seeds: {BENCHMARK_SEEDS}")
+    print(f"Seeds: {BENCHMARK_SEEDS[:5]}")
 
     for i, cfg in enumerate(configs):
         print("\n" + "=" * 70)
         print(f"CONFIG {i + 1}/{len(configs)}")
         print(cfg)
 
-        rows = run_config(cfg, BENCHMARK_SEEDS)
+        rows = run_config(cfg, BENCHMARK_SEEDS[:5])
 
         score, metrics = score_results(rows)
 
@@ -166,6 +171,8 @@ def main():
     print("score:", best_score)
     print(best_metrics)
 
+def __repr__(self):
+    return str(self.values)
 
 if __name__ == "__main__":
     main()

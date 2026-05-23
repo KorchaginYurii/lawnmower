@@ -1,5 +1,5 @@
 from core.config import ACTIONS
-
+from core.tuning_config import runtime_config
 
 class LawnEnergyManager:
     """
@@ -19,7 +19,10 @@ class LawnEnergyManager:
         turn_cost=0.02,
         cut_cost=0.40,
     ):
-        self.reserve = reserve
+        self.reserve = runtime_config.get(
+            "ENERGY_RESERVE",
+            reserve,
+        )
         self.move_cost = move_cost
         self.turn_cost = turn_cost
         self.cut_cost = cut_cost

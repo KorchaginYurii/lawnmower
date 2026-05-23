@@ -1,3 +1,5 @@
+from core.tuning_config import runtime_config
+
 class CoverageCellOrdering:
     """
     Оптимизатор порядка обхода coverage-cells.
@@ -11,11 +13,30 @@ class CoverageCellOrdering:
         uncut_weight=3.0,
         return_home_weight=2.0,
     ):
-        self.distance_weight = distance_weight
-        self.traffic_weight = traffic_weight
-        self.neighbor_bonus = neighbor_bonus
-        self.uncut_weight = uncut_weight
-        self.return_home_weight = return_home_weight
+        self.distance_weight = runtime_config.get(
+            "CELL_DISTANCE_WEIGHT",
+            distance_weight,
+        )
+
+        self.traffic_weight = runtime_config.get(
+            "CELL_TRAFFIC_WEIGHT",
+            traffic_weight,
+        )
+
+        self.neighbor_bonus = runtime_config.get(
+            "CELL_NEIGHBOR_BONUS",
+            neighbor_bonus,
+        )
+
+        self.uncut_weight = runtime_config.get(
+            "CELL_UNCUT_WEIGHT",
+            uncut_weight,
+        )
+
+        self.return_home_weight = runtime_config.get(
+            "CELL_RETURN_HOME_WEIGHT",
+            return_home_weight,
+        )
 
     def score_cell(
         self,

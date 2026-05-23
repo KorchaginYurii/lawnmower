@@ -110,13 +110,13 @@ DIR_NAMES = [
 # =========================================
 
 # Coverage traffic / hot corridor avoidance
-VISIT_WEIGHT = 0.08
-CUT_WEIGHT = 0.04
+VISIT_WEIGHT = 0.04
+CUT_WEIGHT = 0.08
 TRAFFIC_MAX_PENALTY = 8.0
 
 # Coverage cell ordering
 CELL_DISTANCE_WEIGHT = 1.5
-CELL_TRAFFIC_WEIGHT = 1.2
+CELL_TRAFFIC_WEIGHT = 0.8
 CELL_NEIGHBOR_BONUS = 20.0
 CELL_UNCUT_WEIGHT = 3.0
 CELL_RETURN_HOME_WEIGHT = 2.0

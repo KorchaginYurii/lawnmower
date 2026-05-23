@@ -14,8 +14,23 @@ from core.config import (
 )
 import inspect
 import agents.lawn_sweep_agent as lawn_agent_mod
-
+from core.tuning_config import runtime_config
+def __repr__(self):
+    return str(self.values)
 def main():
+    runtime_config.reset()
+
+    runtime_config.load_profile(
+        "configs.tuned_stable"
+    )
+    print("\n========== ACTIVE PROFILE ==========")
+    print(
+        runtime_config.get(
+            "PROFILE_NAME",
+            "unknown"
+        )
+    )
+    print("====================================")
     preset = LAWN_PRESETS[LAWN_PRESET]
 
     lawn = LawnEnv(
