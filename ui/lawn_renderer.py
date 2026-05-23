@@ -506,20 +506,24 @@ class LawnRenderer:
         item(1, 0, f"MODE {debug.get('mode', '-')}")
         item(2, 0, f"STRIP {debug.get('strip_mode', '-')}")
         item(3, 0, f"ENERGY {energy_pct:.1f}%")
+        item(4, 0, f"GRASS {cut}/{total}")
 
-        item(0, 1, f"GRASS {cut}/{total}")
-        item(1, 1, f"COVER {coverage:.3f}")
-        item(2, 1, f"OVERLAP {overlap:.3f}")
-        item(3, 1, f"TURNS {env.total_turns}")
+        item(0, 1, f"COVER {coverage:.3f}")
+        item(1, 1, f"OVERLAP {overlap:.3f}")
+        item(2, 1, f"TURNS {env.total_turns}")
+        item(3, 1, f"REMAIN {remaining}")
+        item(4, 1, f"RECH {getattr(env, 'recharge_count', 0)}")
 
-        item(0, 2, f"REMAIN {remaining}")
-        item(1, 2, f"RECH {getattr(env, 'recharge_count', 0)}")
-        item(2, 2, f"DIR {debug.get('strip_direction', '-')}")
-        item(3, 2, f"GOAL {debug.get('goal', '-')}")
+        item(0, 2, f"DIR {debug.get('strip_direction', '-')}")
+        item(1, 2, f"GOAL {debug.get('goal', '-')}")
+        item(2, 2, f"KNIFE {knife}")
+        item(3, 2, f"CUT_LAST {debug.get('cut_cells_last', 0)}")
+        item(4, 2, f"CELL {debug.get('cell_under_robot', '-')}")
 
-        item(0, 3, f"KNIFE {knife}")
-        item(1, 3, f"CUT_LAST {debug.get('cut_cells_last', 0)}")
-        item(2, 3, f"CELL {debug.get('cell_under_robot', '-')}")
+        item(0, 3, f"PHASE {debug.get('adaptive_phase', '-')}")
+        item(1, 3, f"VW {debug.get('adaptive_visit_weight', 0):.2f}")
+        item(2, 3, f"TW {debug.get('adaptive_cell_traffic_weight', 0):.2f}")
+        item(3, 3, f"CW {debug.get('adaptive_cut_weight', 0):.2f}")
 
     def handle_mouse(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:

@@ -9,6 +9,8 @@ from core.boustrophedon_decomposition import BoustrophedonDecomposition
 from core.boustrophedon_mission_planner import BoustrophedonMissionPlanner
 from core.cell_sweep_route import CellSweepRoute
 from core.coverage_traffic_cost import CoverageTrafficCost
+from core.tuning_config import runtime_config
+from core.adaptive_traffic_controller import AdaptiveTrafficController
 
 class LawnSweepAgent:
     """
@@ -55,6 +57,8 @@ class LawnSweepAgent:
         self.current_cell = None
 
         self.traffic_cost = CoverageTrafficCost()
+        self.adaptive_traffic = AdaptiveTrafficController()
+        self.adaptive_debug = {}
 
     def reset(self):
         self.strip.reset()
@@ -92,6 +96,7 @@ class LawnSweepAgent:
 
         self.decomposition_built = False
         self.current_cell = None
+        self.adaptive_debug = {}
 
     def act(self, env, temp=0):
         # =====================================================
@@ -192,20 +197,12 @@ class LawnSweepAgent:
         self.last_cut = current_cut
 
         # =====================================================
-        # KNIFE CONTROL
+        # ADAPTIVE TRAFFIC CONTROL
         # =====================================================
-        '''
-        if self.mode in ("SWEEP_SECTOR", "GO_TO_SECTOR", "RECOVERY"):
-            env.env.knife_on = True
-
-        elif self.mode == "RETURN_HOME":
-            # act_return_home сам может выключить нож,
-            # если найден путь только по CUT
-            pass
-
-        elif self.mode == "FINISHED":
-            env.env.knife_on = False
-        '''
+        self.adaptive_debug = self.adaptive_traffic.update(
+            env,
+            runtime_config,
+        )
 
         # =====================================================
         # 4. ACTION BY MODE
@@ -735,6 +732,7 @@ class LawnSweepAgent:
             "coverage_cells": decomp_debug.get("coverage_cells", 0),
 
             **self.cell_route.debug(),
+            **self.adaptive_debug,
 
             #"knife_on_real": self.knife_on,
         }
