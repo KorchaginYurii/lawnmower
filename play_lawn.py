@@ -24,6 +24,12 @@ def main():
     runtime_config.load_profile(
         "configs.tuned_stable"
     )
+    runtime_config.set(
+        "USE_ADAPTIVE_TRAFFIC",
+        True,
+    )
+
+
     print("\n========== ACTIVE PROFILE ==========")
     print(
         runtime_config.get(
@@ -32,6 +38,7 @@ def main():
         )
     )
     print("====================================")
+
     preset = LAWN_PRESETS[LAWN_PRESET]
 
     lawn = LawnEnv(

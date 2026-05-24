@@ -439,6 +439,10 @@ def main():
     runtime_config.load_profile(
         "configs.tuned_aggressive"
     )
+    runtime_config.set(
+        "USE_ADAPTIVE_TRAFFIC",
+        True,
+    )
     agent = LawnSweepAgent()
     preset = LAWN_PRESETS[LAWN_PRESET]
     rows = []

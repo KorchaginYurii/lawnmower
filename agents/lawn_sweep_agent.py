@@ -11,7 +11,7 @@ from core.cell_sweep_route import CellSweepRoute
 from core.coverage_traffic_cost import CoverageTrafficCost
 from core.tuning_config import runtime_config
 from core.adaptive_traffic_controller import AdaptiveTrafficController
-from core.config import USE_ADAPTIVE_TRAFFIC
+
 
 class LawnSweepAgent:
     """
@@ -60,6 +60,9 @@ class LawnSweepAgent:
         self.traffic_cost = CoverageTrafficCost()
         self.adaptive_traffic = AdaptiveTrafficController()
         self.adaptive_debug = {}
+
+
+
 
     def reset(self):
         self.strip.reset()
@@ -200,17 +203,29 @@ class LawnSweepAgent:
         # =====================================================
         # ADAPTIVE TRAFFIC CONTROL
         # =====================================================
-        if USE_ADAPTIVE_TRAFFIC:
-            self.adaptive_debug = self.adaptive_traffic.update(
-                env,
-                runtime_config,
+        if runtime_config.get(
+                "USE_ADAPTIVE_TRAFFIC",
+                False,
+        ):
+            self.adaptive_debug = (
+                self.adaptive_traffic.update(
+                    env,
+                    runtime_config,
+                )
             )
         else:
             self.adaptive_debug = {
                 "adaptive_phase": "OFF",
-                "adaptive_visit_weight": runtime_config.get("VISIT_WEIGHT"),
-                "adaptive_cell_traffic_weight": runtime_config.get("CELL_TRAFFIC_WEIGHT"),
-                "adaptive_cut_weight": runtime_config.get("CUT_WEIGHT"),
+                "adaptive_visit_weight":
+                    runtime_config.get("VISIT_WEIGHT"),
+
+                "adaptive_cell_traffic_weight":
+                    runtime_config.get(
+                        "CELL_TRAFFIC_WEIGHT"
+                    ),
+
+                "adaptive_cut_weight":
+                    runtime_config.get("CUT_WEIGHT"),
             }
 
         # =====================================================
