@@ -38,12 +38,16 @@ ADAPTIVE_OPTIONS = [
     True,
 ]
 
+HL_OPTIONS = [
+    False,
+    True,
+]
 
 # =========================================================
 # RUN PROFILE
 # =========================================================
 
-def run_profile(profile_name, adaptive):
+def run_profile(profile_name, adaptive, hl_policy):
 
     runtime_config.reset()
 
@@ -52,6 +56,11 @@ def run_profile(profile_name, adaptive):
     runtime_config.set(
         "USE_ADAPTIVE_TRAFFIC",
         adaptive,
+    )
+
+    runtime_config.set(
+        "USE_HIGH_LEVEL_POLICY",
+        hl_policy,
     )
 
     preset = LAWN_PRESETS[LAWN_PRESET]
@@ -63,11 +72,12 @@ def run_profile(profile_name, adaptive):
     print("\n" + "=" * 80)
     print(f"PROFILE:  {profile_name}")
     print(f"ADAPTIVE: {adaptive}")
+    print(f"hl_policy: {hl_policy}")
     print("=" * 80)
 
     for seed in BENCHMARK_SEEDS:
 
-        print(f"\n🚜 seed={seed}")
+        #print(f"\n🚜 seed={seed}")
 
         result = run_one_lawn_mission(
             agent=agent,
@@ -80,13 +90,10 @@ def run_profile(profile_name, adaptive):
             max_energy=LAWNMOWER_MAX_ENERGY,
         )
 
-        result["profile"] = runtime_config.get(
-            "PROFILE_NAME",
-            profile_name,
-        )
 
+        result["profile"] = runtime_config.get("PROFILE_NAME", profile_name)
         result["adaptive"] = adaptive
-
+        result["hl_policy"] = hl_policy
         rows.append(result)
 
     return rows
@@ -97,41 +104,37 @@ def run_profile(profile_name, adaptive):
 # =========================================================
 
 def summarize(rows):
+    if not rows:
+        return {
+            "profile": "EMPTY",
+            "adaptive": False,
+            "hl_policy": False,
+            "success_rate": 0.0,
+            "coverage_rate": 0.0,
+            "overlap_rate": 999.0,
+            "energy_per_m2": 999.0,
+            "steps": 999999,
+            "turns": 999999,
+            "recharges": 999,
+        }
 
     df = pd.DataFrame(rows)
 
-    summary = {
-        "profile":
-            df["profile"].iloc[0],
+    print("DEBUG columns:", df.columns.tolist())
 
-        "adaptive":
-            bool(df["adaptive"].iloc[0]),
+    return {
+        "profile": df["profile"].iloc[0],
+        "adaptive": bool(df["adaptive"].iloc[0]),
+        "hl_policy": bool(df["hl_policy"].iloc[0]),
 
-        "success_rate":
-            df["success"].mean(),
-
-        "coverage_rate":
-            df["coverage_rate"].mean(),
-
-        "overlap_rate":
-            df["overlap_rate"].mean(),
-
-        "energy_per_m2":
-            df["energy_per_m2"].mean(),
-
-        "steps":
-            df["steps"].mean(),
-
-        "turns":
-            df["turns"].mean(),
-
-        "recharges":
-            df["recharges"].mean(),
+        "success_rate": df["success"].mean(),
+        "coverage_rate": df["coverage_rate"].mean(),
+        "overlap_rate": df["overlap_rate"].mean(),
+        "energy_per_m2": df["energy_per_m2"].mean(),
+        "steps": df["steps"].mean(),
+        "turns": df["turns"].mean(),
+        "recharges": df["recharges"].mean(),
     }
-
-    return summary
-
-
 # =========================================================
 # SAVE
 # =========================================================
@@ -177,19 +180,21 @@ def main():
 
         for adaptive in ADAPTIVE_OPTIONS:
 
-            rows = run_profile(
-                profile,
-                adaptive,
-            )
+            for hl in HL_OPTIONS:
+                rows = run_profile(
+                    profile,
+                    adaptive,
+                    hl,
+                )
 
-            summary = summarize(rows)
+                summary = summarize(rows)
 
-            all_summary_rows.append(
-                summary
-            )
+                all_summary_rows.append(
+                    summary
+                )
 
-            print("\nSUMMARY:")
-            print(summary)
+                print("\nSUMMARY:")
+                print(summary)
 
     save_summary(all_summary_rows)
 

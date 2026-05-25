@@ -116,6 +116,8 @@ def run_one_lawn_mission(
 
     fail_reason_override = None
 
+    last_debug = {}
+
     # =====================================================
     # MAIN LOOP
     # =====================================================
@@ -125,6 +127,8 @@ def run_one_lawn_mission(
         env.sync_from_env()
 
         action, debug = agent.act(env)
+
+        last_debug = debug
 
         reward, done = env.step(action)
 
@@ -208,7 +212,7 @@ def run_one_lawn_mission(
         ###############
             st_bar = int(20 * (step + 1) / max_steps)
             print(
-                    f"*\r{seed}* "
+                    f"\r🚜 {seed}* "
                     f"STEP [{'#' * st_bar}{'-' * (20 - st_bar)}] {step + 1}/{max_steps} | "
                     f"recharge= {lawn.recharge_count} | "
                     f"grass= {lawn.remaining_grass()}/{total_grass} | ",
@@ -299,8 +303,8 @@ def run_one_lawn_mission(
         "cell_traffic_weight": runtime_config.get("CELL_TRAFFIC_WEIGHT"),
         "cut_weight": runtime_config.get("CUT_WEIGHT"),
 
-
-
+        "last_hl_mode": last_debug.get("hl_mode", "NA"),
+        "last_adaptive_phase": last_debug.get("adaptive_phase", "NA"),
 
         # =========================
         # BASIC

@@ -11,7 +11,7 @@ from core.cell_sweep_route import CellSweepRoute
 from core.coverage_traffic_cost import CoverageTrafficCost
 from core.tuning_config import runtime_config
 from core.adaptive_traffic_controller import AdaptiveTrafficController
-
+from core.high_level_policy import HighLevelPolicy
 
 class LawnSweepAgent:
     """
@@ -60,7 +60,8 @@ class LawnSweepAgent:
         self.traffic_cost = CoverageTrafficCost()
         self.adaptive_traffic = AdaptiveTrafficController()
         self.adaptive_debug = {}
-
+        self.high_level_policy = HighLevelPolicy()
+        self.high_level_debug = {}
 
 
 
@@ -101,6 +102,9 @@ class LawnSweepAgent:
         self.decomposition_built = False
         self.current_cell = None
         self.adaptive_debug = {}
+
+        self.high_level_policy.reset()
+        self.high_level_debug = {}
 
     def act(self, env, temp=0):
         # =====================================================
@@ -226,6 +230,18 @@ class LawnSweepAgent:
 
                 "adaptive_cut_weight":
                     runtime_config.get("CUT_WEIGHT"),
+            }
+        # =====================================================
+        # HIGH LEVEL POLICY
+        # =====================================================
+        if runtime_config.get("USE_HIGH_LEVEL_POLICY", False):
+            hl_action = self.high_level_policy.act(env, self)
+            self.high_level_policy.apply(hl_action, runtime_config)
+            self.high_level_debug = self.high_level_policy.debug()
+        else:
+            self.high_level_debug = {
+                "hl_mode": "OFF",
+                "hl_action": -1,
             }
 
         # =====================================================
@@ -757,6 +773,7 @@ class LawnSweepAgent:
 
             **self.cell_route.debug(),
             **self.adaptive_debug,
+            **self.high_level_debug,
 
             #"knife_on_real": self.knife_on,
         }

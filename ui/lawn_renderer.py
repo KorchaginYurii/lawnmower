@@ -524,6 +524,7 @@ class LawnRenderer:
         item(1, 3, f"VW {debug.get('adaptive_visit_weight', 0):.2f}")
         item(2, 3, f"TW {debug.get('adaptive_cell_traffic_weight', 0):.2f}")
         item(3, 3, f"CW {debug.get('adaptive_cut_weight', 0):.2f}")
+        item(4, 3, f"HL {debug.get('hl_mode', '-')}")
 
     def handle_mouse(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN:
