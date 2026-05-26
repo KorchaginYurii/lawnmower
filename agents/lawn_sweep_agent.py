@@ -12,6 +12,7 @@ from core.coverage_traffic_cost import CoverageTrafficCost
 from core.tuning_config import runtime_config
 from core.adaptive_traffic_controller import AdaptiveTrafficController
 from core.high_level_policy import HighLevelPolicy
+from core.rl_high_level_policy import RLHighLevelPolicy
 
 class LawnSweepAgent:
     """
@@ -63,7 +64,13 @@ class LawnSweepAgent:
         self.high_level_policy = HighLevelPolicy()
         self.high_level_debug = {}
 
-
+        self.rl_high_level_policy = RLHighLevelPolicy(
+            model_path=(
+                "checkpoints/rl_high_level/"
+                "rl_high_level_final_20260526_020039.pth"
+            )
+        )
+        self.rl_debug = {}
 
     def reset(self):
         self.strip.reset()
@@ -105,6 +112,9 @@ class LawnSweepAgent:
 
         self.high_level_policy.reset()
         self.high_level_debug = {}
+
+        self.rl_high_level_policy.reset()
+        self.rl_debug = {}
 
     def act(self, env, temp=0):
         # =====================================================
@@ -234,7 +244,23 @@ class LawnSweepAgent:
         # =====================================================
         # HIGH LEVEL POLICY
         # =====================================================
-        if runtime_config.get("USE_HIGH_LEVEL_POLICY", False):
+        if runtime_config.get("USE_RL_HIGH_LEVEL_POLICY", False):
+            rl_action = self.rl_high_level_policy.act(
+                env,
+                self,
+                train=False,
+            )
+            self.rl_high_level_policy.apply(
+                rl_action,
+                runtime_config,
+            )
+            self.rl_debug = self.rl_high_level_policy.debug()
+            self.high_level_debug = {
+                "hl_mode": self.rl_debug["rl_mode"],
+                "hl_action": rl_action,
+            }
+
+        elif runtime_config.get("USE_HIGH_LEVEL_POLICY", False):
             hl_action = self.high_level_policy.act(env, self)
             self.high_level_policy.apply(hl_action, runtime_config)
             self.high_level_debug = self.high_level_policy.debug()
@@ -774,8 +800,8 @@ class LawnSweepAgent:
             **self.cell_route.debug(),
             **self.adaptive_debug,
             **self.high_level_debug,
+            **self.rl_debug,
 
-            #"knife_on_real": self.knife_on,
         }
 
     def is_action_valid(self, env, action):

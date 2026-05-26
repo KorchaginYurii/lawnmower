@@ -489,3 +489,16 @@ def __repr__(self):
 
 ==== adaptive traffic controller ====
 === profile_benchmark_runner ===
+
+=======================================
+==== RL OVER PLANNER ==
+=========================================
+Сделаем RL не вместо planner, а вместо текущего rule-based HighLevelPolicy.act(): он будет выбирать стратегический режим, а движение/маршруты остаются deterministic.
+	RL strategic controller
+		+
+	deterministic planner
+		+
+	deterministic A*
+		+
+	deterministic sweep
+	

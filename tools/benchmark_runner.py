@@ -296,15 +296,27 @@ def run_one_lawn_mission(
             "PROFILE_NAME",
             "unknown"
         ),
-        "adaptive": USE_ADAPTIVE_TRAFFIC,
-
+        "adaptive": runtime_config.get(
+            "USE_ADAPTIVE_TRAFFIC",
+            False
+        ),
+        "hl_policy": runtime_config.get(
+            "USE_HIGH_LEVEL_POLICY",
+            False
+        ),
+        "rl_policy": runtime_config.get(
+            "USE_RL_HIGH_LEVEL_POLICY",
+            False
+        ),
         "adaptive_phase": debug.get("adaptive_phase", "NA"),
         "visit_weight": runtime_config.get("VISIT_WEIGHT"),
         "cell_traffic_weight": runtime_config.get("CELL_TRAFFIC_WEIGHT"),
         "cut_weight": runtime_config.get("CUT_WEIGHT"),
 
         "last_hl_mode": last_debug.get("hl_mode", "NA"),
+        "last_rl_mode": last_debug.get("rl_mode", "NA"),
         "last_adaptive_phase": last_debug.get("adaptive_phase", "NA"),
+
 
         # =========================
         # BASIC

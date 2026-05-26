@@ -33,71 +33,73 @@ PROFILES = [
     "configs.tuned_energy_saver",
 ]
 
-ADAPTIVE_OPTIONS = [
-    False,
-    True,
-]
-
-HL_OPTIONS = [
-    False,
-    True,
+MODES = [
+    {
+        "name": "baseline",
+        "adaptive": False,
+        "hl": False,
+        "rl": False,
+    },
+    {
+        "name": "adaptive",
+        "adaptive": True,
+        "hl": False,
+        "rl": False,
+    },
+    {
+        "name": "rule_hl",
+        "adaptive": False,
+        "hl": True,
+        "rl": False,
+    },
+    {
+        "name": "rl_hl",
+        "adaptive": False,
+        "hl": False,
+        "rl": True,
+    },
 ]
 
 # =========================================================
 # RUN PROFILE
 # =========================================================
 
-def run_profile(profile_name, adaptive, hl_policy):
-
+def run_profile(profile_name, mode_cfg):
     runtime_config.reset()
-
     runtime_config.load_profile(profile_name)
 
-    runtime_config.set(
-        "USE_ADAPTIVE_TRAFFIC",
-        adaptive,
-    )
-
-    runtime_config.set(
-        "USE_HIGH_LEVEL_POLICY",
-        hl_policy,
-    )
+    runtime_config.set("USE_ADAPTIVE_TRAFFIC", mode_cfg["adaptive"])
+    runtime_config.set("USE_HIGH_LEVEL_POLICY", mode_cfg["hl"])
+    runtime_config.set("USE_RL_HIGH_LEVEL_POLICY", mode_cfg["rl"])
 
     preset = LAWN_PRESETS[LAWN_PRESET]
-
     agent = LawnSweepAgent()
-
     rows = []
 
     print("\n" + "=" * 80)
-    print(f"PROFILE:  {profile_name}")
-    print(f"ADAPTIVE: {adaptive}")
-    print(f"hl_policy: {hl_policy}")
+    print(f"PROFILE: {profile_name}")
+    print(f"MODE:    {mode_cfg['name']}")
     print("=" * 80)
 
     for seed in BENCHMARK_SEEDS:
-
-        #print(f"\n🚜 seed={seed}")
-
         result = run_one_lawn_mission(
             agent=agent,
             seed=seed,
-
             **preset,
-
             cell_size_m=CELL_SIZE_M,
             robot_size_m=ROBOT_SIZE_M,
             max_energy=LAWNMOWER_MAX_ENERGY,
         )
 
-
         result["profile"] = runtime_config.get("PROFILE_NAME", profile_name)
-        result["adaptive"] = adaptive
-        result["hl_policy"] = hl_policy
+        result["mode"] = mode_cfg["name"]
+        result["adaptive"] = mode_cfg["adaptive"]
+        result["hl_policy"] = mode_cfg["hl"]
+        result["rl_policy"] = mode_cfg["rl"]
+
         rows.append(result)
 
     return rows
-
 
 # =========================================================
 # SUMMARY
@@ -126,7 +128,7 @@ def summarize(rows):
         "profile": df["profile"].iloc[0],
         "adaptive": bool(df["adaptive"].iloc[0]),
         "hl_policy": bool(df["hl_policy"].iloc[0]),
-
+        "mode": df["mode"].iloc[0],
         "success_rate": df["success"].mean(),
         "coverage_rate": df["coverage_rate"].mean(),
         "overlap_rate": df["overlap_rate"].mean(),
@@ -134,6 +136,7 @@ def summarize(rows):
         "steps": df["steps"].mean(),
         "turns": df["turns"].mean(),
         "recharges": df["recharges"].mean(),
+
     }
 # =========================================================
 # SAVE
@@ -173,50 +176,29 @@ def save_summary(rows):
 # =========================================================
 
 def main():
-
     all_summary_rows = []
 
     for profile in PROFILES:
+        for mode_cfg in MODES:
+            rows = run_profile(profile, mode_cfg)
 
-        for adaptive in ADAPTIVE_OPTIONS:
+            summary = summarize(rows)
+            all_summary_rows.append(summary)
 
-            for hl in HL_OPTIONS:
-                rows = run_profile(
-                    profile,
-                    adaptive,
-                    hl,
-                )
-
-                summary = summarize(rows)
-
-                all_summary_rows.append(
-                    summary
-                )
-
-                print("\nSUMMARY:")
-                print(summary)
+            print("\nSUMMARY:")
+            print(summary)
 
     save_summary(all_summary_rows)
 
-    print("\n========== FINAL ==========")
-
     df = pd.DataFrame(all_summary_rows)
 
+    print("\n========== FINAL ==========")
     print(
         df.sort_values(
-            by=[
-                "success_rate",
-                "energy_per_m2",
-                "overlap_rate",
-            ],
-            ascending=[
-                False,
-                True,
-                True,
-            ],
+            by=["success_rate", "energy_per_m2", "overlap_rate"],
+            ascending=[False, True, True],
         ).to_string(index=False)
     )
-
     print("===========================\n")
 
 
