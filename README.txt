@@ -502,3 +502,28 @@ def __repr__(self):
 		+
 	deterministic sweep
 	
+Rule-based HL сейчас — очень сильный teacher policy.
+RL пока: почти научился её повторять но ещё не догнал.	
+
+=== imitation learning / policy distillation ===
+Вместо: учить RL с нуля мы можем: учить RL копировать rule_hl
+
+Собираем dataset
+	Во время обычного rule_hl benchmark сохраняем:
+		state -> hl_action
+Обучаем RL как classifier:
+	state -> action
+		через:
+	CrossEntropyLoss
+Это даст
+	RL instantly reaches rule_hl quality
+а потом уже можно делать:
+	RL fine-tuning over benchmark reward
+И это очень правильная robotics architecture
+	Rule policy
+		↓
+	Imitation learning
+		↓
+	RL fine tuning
+Это намного стабильнее, чем pure RL с нуля	
+Stage 1 — imitation dataset collection	
