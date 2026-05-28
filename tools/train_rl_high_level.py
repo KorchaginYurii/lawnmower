@@ -29,13 +29,13 @@ EPISODES = 300
 MAX_STEPS_MULT = 3
 
 GAMMA = 0.98
-LR = 1e-3
+LR = 3e-4
 
 BATCH_SIZE = 64
 MEMORY_SIZE = 20_000
 
-EPS_START = 0.40
-EPS_END = 0.05
+EPS_START = 0.08
+EPS_END = 0.01
 EPS_DECAY = 250
 
 TARGET_UPDATE = 20
@@ -222,6 +222,14 @@ def train():
     runtime_config.set("USE_ADAPTIVE_TRAFFIC", False)
 
     policy = RLPolicyNet().to(DEVICE)
+
+    policy.load_state_dict(
+        torch.load(
+            "checkpoints/rl_high_level/"
+            "rl_high_level_imitation_best.pth",
+            map_location=DEVICE,
+        )
+    )
     target = RLPolicyNet().to(DEVICE)
     target.load_state_dict(policy.state_dict())
 

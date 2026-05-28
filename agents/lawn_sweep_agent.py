@@ -67,7 +67,7 @@ class LawnSweepAgent:
         self.rl_high_level_policy = RLHighLevelPolicy(
             model_path=(
                 "checkpoints/rl_high_level/"
-                "rl_high_level_final_20260526_020039.pth"
+                "rl_high_level_final_20260528_001438.pth"
             )
         )
         self.rl_debug = {}

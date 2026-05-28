@@ -34,18 +34,7 @@ PROFILES = [
 ]
 
 MODES = [
-    {
-        "name": "baseline",
-        "adaptive": False,
-        "hl": False,
-        "rl": False,
-    },
-    {
-        "name": "adaptive",
-        "adaptive": True,
-        "hl": False,
-        "rl": False,
-    },
+
     {
         "name": "rule_hl",
         "adaptive": False,
