@@ -1,16 +1,18 @@
 import math
 import numpy as np
 from collections import deque
+from core.config import GRASS_CELL, CUT_CELL, OBSTACLE_CELL, BUFFER_CELL
 
 # =========================
 # CELL TYPES
 # =========================
 
-OBSTACLE = -1
-EMPTY = 0
-GRASS = 1
-CUT = 2
-BUFFER = 3
+# Для обратной совместимости можно создать алиасы:
+GRASS = GRASS_CELL
+CUT = CUT_CELL
+OBSTACLE = OBSTACLE_CELL
+BUFFER = BUFFER_CELL
+EMPTY = 0  # Если нужно
 
 # =========================
 # ACTIONS

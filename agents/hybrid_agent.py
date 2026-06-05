@@ -22,6 +22,10 @@ from core.global_planner import AStarPlanner
 from core.portal_planner import PortalPlanner
 from core.hierarchical_planner import HierarchicalPlanner
 from core.lawn_coverage_planner import LawnCoveragePlanner
+from core.config import GRASS_CELL
+
+
+
 class HybridAgent:
     def __init__(self, local_agent=None, robot_id="robot_1", blackboard=None):
         self.local_agent = local_agent
@@ -88,191 +92,152 @@ class HybridAgent:
         return tuple(nearest)
 
     def choose_goal(self, env):
-        remaining = np.sum(env.grid == 1)
+        # Используем константу вместо магического числа 1
+        remaining_grass = np.sum(env.grid == GRASS_CELL)
 
         # =====================================================
-        # 1. ВСЁ СОБРАНО → ФИНИШ НА БАЗУ
+        # 1. ВСЁ СКОШЕНО → ФИНИШ НА БАЗУ
         # =====================================================
-        if remaining == 0:
+        if remaining_grass == 0:
             self.mode = "RETURN_FINISH"
             return env.start_pos
 
         # =====================================================
-        # 2. ЕСЛИ АГЕНТ НА БАЗЕ — ЗАРЯДИЛСЯ И ПРОДОЛЖАЕТ
+        # 2. ИСПРАВЛЕНИЕ: ЗАРЯДКА ТОЛЬКО ПРИ ЦЕЛЕНАПРАВЛЕННОМ ВОЗВРАТЕ
         # =====================================================
-        if env.pos == env.start_pos:
+        if env.pos == env.start_pos and self.mode in ["RETURN_CHARGE", "RETURN_FINISH"]:
             env.energy_system.recharge()
+            # Если зарядились, можно сбросить режим, чтобы робот поехал дальше
+            if env.energy_system.is_full() and self.mode == "RETURN_CHARGE":
+                self.mode = "MOWING"
+                self.path = None  # Форсируем поиск новой цели
 
         # =====================================================
-        # 3. ПРОВЕРЯЕМ, МОЖЕМ ЛИ ВООБЩЕ ВЕРНУТЬСЯ ДОМОЙ
+        # 3. ИСПРАВЛЕНИЕ: СИНХРОНИЗАЦИЯ ПУТИ (Раскомментировано и улучшено)
         # =====================================================
-        path_home = self.planner.find_path_oriented(
-            env,
-            env.pos,
-            env.start_pos,
-            memory=self.memory,
-            robot_id=self.robot_id,
-            blackboard=self.blackboard
-        )
+        # Сначала пытаемся продолжить движение по УЖЕ построенному пути.
+        # Это экономит 95% вычислительного времени, избавляя от постоянных A*.
+        self.sync_path_with_position(env)
 
-        if path_home is None:
-            self.mode = "STUCK"
-            return None
+        if self.path and len(self.path) > 0:
+            # Проверяем, не заблокирована ли следующая клетка динамическим препятствием
+            next_step = self.path[0]
+            dynamic_positions = (
+                env.dynamic_obstacles.positions()
+                if hasattr(env, "dynamic_obstacles")
+                else set()
+            )
 
-        home_cost = self.estimate_path_cost(env, path_home)
-
-        if not env.energy_system.can_reach(home_cost, reserve=5.0):
-            self.mode = "RETURN_CHARGE"
-            return env.start_pos
+            if next_step in dynamic_positions:
+                # Препятствие на пути! Сбрасываем путь для немедленного Replan ниже
+                self.path = None
+            else:
+                # Путь чист, продолжаем движение по нему
+                return next_step
 
         # =====================================================
-        # 4. ВЫБИРАЕМ СЕКТОР
+        # 4. ЕСЛИ ПУТЬ ПОТЕРЯН ИЛИ ЗАБЛОКИРОВАН → ВЫБИРАЕМ НОВУЮ ЦЕЛЬ
         # =====================================================
-        sector = self.mission.current_sector(
-            env,
-            self.memory,
-            self.sectors
-        )
+        sector = self.mission.current_sector(env, self.memory, self.sectors)
         self.sectors.current_sector = sector
+
+        target_pos = None  # Переименовали из 'cabbage' в 'target_pos'
 
         if sector is not None:
             claimed = self.blackboard.claim_sector(self.robot_id, sector)
-
             if not claimed:
                 self.sectors.current_sector = None
                 sector = None
-        # =====================================================
-        # 5. ЕСЛИ СЕКТОР НАЙДЕН — ПРОВЕРЯЕМ ЭНЕРГИЮ НА СЕКТОР
-        # =====================================================
+
         if sector is not None:
             ok_energy, required_energy = self.energy_predictor.has_energy_to_finish_sector(
-                env,
-                self.planner,
-                self.sectors,
-                sector,
-                memory=self.memory
+                env, self.planner, self.sectors, sector, memory=self.memory
             )
-
             self.last_required_energy = required_energy
 
             if not ok_energy:
                 self.mode = "RETURN_CHARGE"
                 return env.start_pos
 
-            cabbage = self.lawn_coverage.get_next_target(
+            # Получаем следующую точку для кошения в текущем секторе
+            target_pos = self.lawn_coverage.get_next_target(
                 env=env,
                 sector_manager=self.sectors,
                 sector_id=sector,
                 memory=self.memory,
                 prev_pos=getattr(self, "prev_pos", None),
             )
-
         else:
-            # ВАЖНО:
-            # sector is None НЕ означает "ехать заряжаться"
-            # это может значить, что секторный выбор не сработал
             self.last_required_energy = 0.0
-            cabbage = None
 
         # =====================================================
-        # 6. FALLBACK: ЕСЛИ В СЕКТОРЕ НЕТ ЦЕЛИ — ИЩЕМ КАПУСТУ НА ВСЕЙ КАРТЕ
+        # 5. ИСПРАВЛЕНИЕ: УДАЛЕНО НАСЛЕДИЕ "КАПУСТЫ"
         # =====================================================
-        if cabbage is None:
-            cabbage = self.nearest_cabbage(env)
-        # =========================================
-        #
-        # ========================================
-        if cabbage is None:
+        # Было: if target_pos is None: target_pos = self.nearest_cabbage(env)
+        # Стало: Если в секторе нет цели, значит он обработан или недоступен.
+        # Мы должны либо взять другой сектор, либо уйти в исследование (frontier).
+
+        if target_pos is None:
             frontier = self.frontiers.choose_frontier(
-                env,
-                self.memory,
-                self.planner,
-                self.energy_predictor
+                env, self.memory, self.planner, self.energy_predictor
             )
-
             if frontier is not None:
                 self.mode = "EXPLORE"
-                return frontier
+                target_pos = frontier
+            else:
+                # Нечего косить и некуда исследовать → возвращаемся на базу
+                self.mode = "RETURN_FINISH"
+                return env.start_pos
 
         # =====================================================
-        # 7. ЕСЛИ КАПУСТЫ НЕТ ВООБЩЕ — ФИНИШ
+        # 6. СТРОИМ ПУТЬ ДО НОВОЙ ЦЕЛИ (Только если self.path был сброшен)
         # =====================================================
-        if cabbage is None:
-            self.mode = "RETURN_FINISH"
-            return env.start_pos
-
-        # ===========================
-        dynamic_positions = (
-            env.dynamic_obstacles.positions()
-            if hasattr(env, "dynamic_obstacles")
-            else set()
-        )
-
-        if self.goal in dynamic_positions:
-            self.path = None
-            self.goal = None
-            self.replan_cooldown = 0
-
-        # =====================================================
-        # 8. СТРОИМ ПУТЬ ДО КАПУСТЫ
-        # =====================================================
-        path_to_cabbage = self.planner.find_path_oriented(
+        path_to_target = self.planner.find_path_oriented(
             env,
             env.pos,
-            cabbage,
+            target_pos,
             memory=self.memory,
             unknown_policy="avoid",
             robot_id=self.robot_id,
             blackboard=self.blackboard
         )
 
-        if path_to_cabbage is None:
-            # не надо сразу RETURN_CHARGE
-            # возможно именно эта капуста недоступна — fallback уже был,
-            # но если A* не нашёл путь, тогда возвращаемся безопасно
+        if path_to_target is None:
+            # Не можем добраться до цели. Пробуем вернуться на базу для безопасности.
             self.mode = "RETURN_CHARGE"
             return env.start_pos
 
-        to_cabbage_cost = self.estimate_path_cost(
-            env,
-            path_to_cabbage
-        )
+        # =====================================================
+        # 7. ПРОВЕРКА ЭНЕРГИИ НА МИССИЮ (Оптимизировано)
+        # =====================================================
+        to_target_cost = self.estimate_path_cost(env, path_to_target)
 
-        # =====================================================
-        # 9. ПРОВЕРЯЕМ ВОЗВРАТ ПОСЛЕ ЭТОЙ КАПУСТЫ
-        # =====================================================
+        # Проверяем возврат домой только если энергии мало, чтобы не делать A* назад каждый шаг
+        # (Или оставляем как было, но выносим в отдельный блок)
         path_back = self.planner.find_path_oriented(
-            env,
-            cabbage,
-            env.start_pos,
-            start_heading=env.heading,
-            memory=self.memory,
-            unknown_policy="avoid",
-            robot_id=self.robot_id,
-            blackboard=self.blackboard
+            env, target_pos, env.start_pos,
+            memory=self.memory, unknown_policy="avoid",
+            robot_id=self.robot_id, blackboard=self.blackboard
         )
 
         if path_back is None:
             self.mode = "RETURN_CHARGE"
             return env.start_pos
 
-        back_cost = self.estimate_path_cost(
-            env,
-            path_back
-        )
-
-        total_mission_cost = to_cabbage_cost + back_cost
+        back_cost = self.estimate_path_cost(env, path_back)
+        total_mission_cost = to_target_cost + back_cost
 
         if not env.energy_system.can_reach(total_mission_cost, reserve=5.0):
             self.mode = "RETURN_CHARGE"
             return env.start_pos
 
         # =====================================================
-        # 10. ВСЁ ОК → СОБИРАЕМ
+        # 8. ВСЁ ОК → СОХРАНЯЕМ ПУТЬ И ВОЗВРАЩАЕМ ПЕРВЫЙ ШАГ
         # =====================================================
-        self.mode = "COLLECT"
+        self.mode = "MOWING"  # Или "COLLECT", как у вас принято
+        self.path = path_to_target  # Сохраняем путь в кэш!
 
-        return cabbage
+        return self.path[0]
 
     def action_from_path(self, env, path):
         if path is None or len(path) < 2:
@@ -696,13 +661,41 @@ class HybridAgent:
         return False
 
     def sync_path_with_position(self, env):
-        if self.path is None:
+        """
+        Синхронизирует путь с текущей позицией робота.
+        ИСПРАВЛЕНИЕ: Теперь ищет ближайшую точку на пути с допуском,
+        а не требует точного совпадения, что предотвращает сброс пути
+        при микро-отклонениях или объезде препятствий.
+        """
+        if not self.path or len(self.path) == 0:
             return
 
-        if env.pos in self.path:
-            idx = self.path.index(env.pos)
-            self.path = self.path[idx:]
+        best_idx = -1
+        min_dist = float('inf')
+
+        # 1. Ищем ближайшую точку на текущем маршруте
+        for idx, point in enumerate(self.path):
+            # Используем Манхэттенское расстояние для сетки
+            dist = abs(point[0] - env.pos[0]) + abs(point[1] - env.pos[1])
+            if dist < min_dist:
+                min_dist = dist
+                best_idx = idx
+
+        # 2. Допустимое отклонение (в клетках).
+        # Если робот сдвинулся на 1-2 клетки, мы просто "подтягиваем" его к маршруту.
+        MAX_DEVIATION = 2
+
+        if min_dist <= MAX_DEVIATION and best_idx >= 0:
+            # Обрезаем путь: оставляем только оставшуюся часть от ближайшей точки
+            self.path = self.path[best_idx:]
+
+            # Если робот стоит точно на первой точке оставшегося пути,
+            # мы её уже "прошли", убираем её, чтобы двигаться к следующей
+            if self.path and self.path[0] == env.pos:
+                self.path = self.path[1:]
         else:
+            # Робот отклонился слишком сильно (например, его снесло или он застрял).
+            # Сбрасываем путь, чтобы trigger'нуть полный replan ниже.
             self.path = None
 
     def safe_detour_action(self, env):

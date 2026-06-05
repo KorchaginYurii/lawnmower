@@ -146,12 +146,13 @@ class LawnMissionPlanner:
                     "score": score,
                     "uncut": uncut,
                     "dist_base": dist_from_base,
+                    "dist_robot" : dist_from_robot,
                 }
             )
 
         sectors.sort(
             key=lambda s: (
-                s["dist_base"],
+                s["score"],
                 -s["uncut"],
                 -s["score"],
             )

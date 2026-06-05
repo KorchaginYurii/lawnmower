@@ -1,5 +1,5 @@
 import numpy as np
-
+from core.config import GRASS_CELL, OBSTACLE_CELL, CUT_CELL, BUFFER_CELL
 
 class LawnCoveragePlanner:
     """
@@ -17,6 +17,8 @@ class LawnCoveragePlanner:
         self.cached_signature = None
         self.cached_sector = None
         self.sweep_direction = "horizontal"
+        self.last_sector_id = None
+        self.last_obstacle_hash = None  # Хэш структуры препятствий
 
     def reset(self):
         self.route = []
@@ -361,23 +363,70 @@ class LawnCoveragePlanner:
 
         return segments
 
-    def build_signature(
-        self,
-        env,
-        sector_id=None,
-        sector_manager=None,
-    ):
+    def build_signature(self, env, sector_id, sector_manager):
         """
-        Сигнатура нужна, чтобы понимать:
-        изменилась ли карта травы.
+        Сигнатура теперь зависит ТОЛЬКО от структуры препятствий
+        и границ секторов, но НЕ от количества нескошенной травы.
         """
+        # Хэшируем только препятствия и стены (статичные объекты)
+        # Используем только клетки, которые являются препятствиями
+        obstacle_cells = []
+        for x in range(env.grid.shape[0]):
+            for y in range(env.grid.shape[1]):
+                # Считаем только препятствия (OBSTACLE = 2 или ваше значение)
+                if env.grid[x, y] == OBSTACLE_CELL:
+                    obstacle_cells.append((x, y))
 
-        if sector_manager is not None and sector_id is not None:
-            x1, x2, y1, y2 = sector_manager.get_sector_bounds(
-                sector_id,
-                env.grid.shape,
-            )
+        # Добавляем ID сектора и его границы для стабильности
+        sector_info = sector_manager.get_sector_info(sector_id) if sector_manager else None
+        sector_hash = hash(str(sector_info)) if sector_info else 0
 
-            return int(np.sum(env.grid[x1:x2, y1:y2] == 1))
+        # Хэш от структуры препятствий (быстро и стабильно)
+        obstacle_hash = hash(tuple(sorted(obstacle_cells)))
 
-        return int(np.sum(env.grid == 1))
+        return obstacle_hash ^ sector_hash
+
+    def get_plan(self, env, sector_id, sector_manager, start_pos=None):
+        """
+        Основной метод планирования. Теперь перестраивает маршрут
+        только при изменении структуры препятствий.
+        """
+        signature = self.build_signature(env, sector_id, sector_manager)
+
+        # Проверяем, нужно ли перестраивать маршрут
+        need_rebuild = (
+                self.cached_signature is None or
+                signature != self.cached_signature or
+                self.last_sector_id != sector_id or
+                len(self.route) == 0
+        )
+
+        if need_rebuild:
+            # Полная перестройка маршрута
+            self.route = self.build_sweep_route(env, sector_id, sector_manager, start_pos)
+            self.cached_signature = signature
+            self.last_sector_id = sector_id
+        else:
+            # ИНКРЕМЕНТАЛЬНОЕ ОБНОВЛЕНИЕ: удаляем срезанные клетки из маршрута
+            self._prune_cut_cells_from_route(env)
+
+        return self.route
+
+    def _prune_cut_cells_from_route(self, env):
+        """
+        Удаляет из маршрута только те клетки, которые уже скошены.
+        Это позволяет не перестраивать весь маршрут при каждом срезе.
+        """
+        if not self.route:
+            return
+
+        # Удаляем срезанные клетки из начала маршрута
+        while self.route and env.grid[self.route[0][0], self.route[0][1]] != GRASS_CELL:
+            self.route.pop(0)
+
+        # Опционально: можно также удалить срезанные клетки из середины маршрута
+        # (если робот объезжал препятствие и вернулся)
+        self.route = [
+            pos for pos in self.route
+            if env.grid[pos[0], pos[1]] == GRASS_CELL or pos == env.pos
+        ]
