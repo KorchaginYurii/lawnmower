@@ -125,15 +125,6 @@ class LawnEnv:
         return self.get_state()
 
     def load_mask(self, mowable_mask, obstacle_mask=None, start_pos=None):
-        """
-        Загружает карту из масок.
-
-        mowable_mask:
-            True там, где надо косить.
-
-        obstacle_mask:
-            True там, где препятствие.
-        """
         assert mowable_mask.shape == (self.h, self.w)
 
         self.grid[:, :] = EMPTY
@@ -143,17 +134,29 @@ class LawnEnv:
             assert obstacle_mask.shape == (self.h, self.w)
             self.grid[obstacle_mask] = OBSTACLE
 
+        # 1. надуваем препятствия
         self.inflate_obstacles()
 
+        # 2. выбираем старт
         if start_pos is None:
             start_pos = self.find_first_free_cell()
 
         self.start_pos = start_pos
         self.pos = start_pos
+
+        # 3. после inflation очищаем базу и выезд
+        self.clear_start_area(radius=3)
+
+        # 4. если выхода всё ещё нет — расширяем
+        if not self.has_free_neighbor(self.start_pos):
+            self.clear_start_area(radius=5)
+
+        # 5. только теперь удаляем недостижимую траву
         removed = self.remove_unreachable_grass()
 
         if removed > 0:
             print(f"\n⚠️ removed unreachable grass cells: {removed}")
+
         self.heading = 1
 
         self.energy = self.max_energy
@@ -274,7 +277,7 @@ class LawnEnv:
 
         reward = 0.0
         done = False
-
+        blocked_by_uncut_grass = False
         dx, dy = ACTIONS[action]
         nx = old_pos[0] + dx
         ny = old_pos[1] + dy
@@ -292,9 +295,19 @@ class LawnEnv:
         # MOVE
         # -------------------------
         else:
+            blocked_by_uncut_grass = False
+
             if not self.can_stand(new_pos):
                 reward -= 1.0
                 new_pos = old_pos
+
+            # нельзя ехать по нескошенной траве с выключенным ножом
+            elif self.grid[nx, ny] == GRASS and not self.knife_on:
+                blocked_by_uncut_grass = True
+                reward -= 2.0
+                new_pos = old_pos
+                moved = False
+
             else:
                 moved = True
                 self.pos = new_pos
@@ -321,9 +334,12 @@ class LawnEnv:
         # -------------------------
         # CUTTING
         # -------------------------
-        cut_cells = self.cut_under_robot()
+        cut_cells = 0
 
-        if cut_cells > 0:
+        if self.knife_on:
+            cut_cells = self.cut_under_robot()
+
+        if self.knife_on and cut_cells > 0:
             cut_energy = cut_cells * self.cut_cost
 
             self.energy -= cut_energy
@@ -345,7 +361,12 @@ class LawnEnv:
         # DONE
         # -------------------------
         # mission complete only when all grass is cut AND robot returned home
-        if self.remaining_grass() == 0 and self.pos == self.start_pos:
+        NEAR_COMPLETE_GRASS = 3
+
+        if (
+                self.remaining_grass() <= NEAR_COMPLETE_GRASS
+                and self.pos == self.start_pos
+        ):
             done = True
             reward += 100.0
 
@@ -364,6 +385,13 @@ class LawnEnv:
             "remaining_grass": self.remaining_grass(),
             "total_turns": self.total_turns,
             "knife_on": self.knife_on,
+            "blocked_by_uncut_grass": (
+                    action != WAIT
+                    and self.can_stand(new_pos)
+                    and self.grid[nx, ny] == GRASS
+                    and not self.knife_on
+            ),
+            "blocked_by_uncut_grass": blocked_by_uncut_grass,
         }
 
         return self.get_state(), reward, done, info
@@ -528,15 +556,31 @@ class LawnEnv:
             border_margin=border_margin,
         )
 
+        start_pos = getattr(gen, "start_pos", None)
+
         mowable_mask = raw_grid == GRASS
         obstacle_mask = raw_grid == OBSTACLE
 
-        return self.load_mask(
+        # ВАЖНО:
+        # start_pos передаём внутрь load_mask,
+        # иначе load_mask выберет старт заново.
+        result = self.load_mask(
             mowable_mask=mowable_mask,
             obstacle_mask=obstacle_mask,
-            start_pos=None,
+            start_pos=start_pos,
         )
+        self.grid[self.start_pos] = CUT
+        # После load_mask карта уже реально записана в self.grid.
+        # Теперь можно чистить базу и проверять выход.
+        if not self.has_free_neighbor(self.start_pos):
+            self.clear_start_area(radius=2)
 
+        if not self.has_free_neighbor(self.start_pos):
+            self.start_pos = self.find_first_free_cell()
+            self.pos = self.start_pos
+            self.clear_start_area(radius=2)
+
+        return result
     def remove_unreachable_grass(self):
         """
         Удаляет недостижимую траву после obstacle inflation.
@@ -583,3 +627,29 @@ class LawnEnv:
                     unreachable_grass += 1
 
         return unreachable_grass
+
+    def has_free_neighbor(self, pos):
+        x, y = pos
+
+        for dx, dy in ACTIONS[:4]:
+            nx = x + dx
+            ny = y + dy
+
+            if 0 <= nx < self.h and 0 <= ny < self.w:
+                if self.grid[nx, ny] in (GRASS, CUT):
+                    return True
+
+        return False
+
+    def clear_start_area(self, radius=2):
+        sx, sy = self.start_pos
+
+        for dx in range(-radius, radius + 1):
+            for dy in range(-radius, radius + 1):
+                x = sx + dx
+                y = sy + dy
+
+                if (x, y) == self.start_pos:
+                    self.grid[x, y] = CUT
+                elif self.grid[x, y] != OBSTACLE:
+                    self.grid[x, y] = GRASS

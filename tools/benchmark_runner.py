@@ -48,7 +48,8 @@ def run_one_lawn_mission(
     object_count=10,
     max_object_size=24,
 
-    max_steps_mult=3,
+    max_steps_mult=5,
+    max_recharges=100,
     border_margin=1,
 
     min_total_reward=-5000.0,
@@ -105,6 +106,10 @@ def run_one_lawn_mission(
         int(total_grass * max_steps_mult)
     )
 
+    auto_max_recharges = max(
+        30,
+        int(lawn.total_grass() / 130)
+    )
     # =====================================================
     # METRICS
     # =====================================================
@@ -117,6 +122,7 @@ def run_one_lawn_mission(
     fail_reason_override = None
 
     last_debug = {}
+
 
     # =====================================================
     # MAIN LOOP
@@ -184,7 +190,7 @@ def run_one_lawn_mission(
         # TOO MANY RECHARGES
         # =================================================
 
-        if getattr(lawn, "recharge_count", 0) > 30:
+        if getattr(lawn, "recharge_count", 0) > max_recharges: # auto_max_recharges:
             fail_reason_override = "too_many_recharges"
             break
 
@@ -409,6 +415,7 @@ def run_one_lawn_mission(
     }
 
     return result
+
 def save_results(
     rows,
     path=None,
@@ -453,7 +460,7 @@ def main():
     runtime_config.reset()
 
     runtime_config.load_profile(
-        "configs.tuned_aggressive"
+        "configs.tuned_stable"
     )
     runtime_config.set(
         "USE_ADAPTIVE_TRAFFIC",

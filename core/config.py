@@ -4,7 +4,7 @@ import torch
 # CONFIG VERSION
 # =========================================
 
-CONFIG_VERSION = "knife control_v1"
+CONFIG_VERSION = "RL_FINE_TUNING"
 
 # ========================================
 # FLAGS
@@ -42,7 +42,7 @@ VISION_SIZE = 7
 # LAWNMOWER MAP PRESETS
 # =========================================
 
-LAWN_PRESET = "small"
+LAWN_PRESET = "medium"
 
 LAWN_PRESETS = {
     "tiny": {

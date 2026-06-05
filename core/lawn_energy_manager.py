@@ -37,20 +37,17 @@ class LawnEnergyManager:
         env = LawnHybridAdapter
         """
 
-        if env.pos == env.start_pos:
-            return False
+        energy = getattr(env.env, "energy", env.energy_system.energy)
+        max_energy = getattr(env.env, "max_energy", env.energy_system.max_energy)
 
-        energy_ratio = env.energy_system.energy / max(
-            1e-9,
-            env.energy_system.max_energy
-        )
+        energy_ratio = energy / max(1e-9, max_energy)
 
-        if energy_ratio <= 0.30:
+        if energy_ratio <= 0.35:
             return True
 
         return_cost = self.estimate_return_cost(env)
 
-        return env.energy_system.energy <= return_cost + self.reserve
+        return energy <= return_cost + self.reserve
 
     def estimate_return_cost(self, env):
         """
